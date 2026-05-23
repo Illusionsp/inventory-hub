@@ -1,0 +1,501 @@
+Create a full-stack web-based **Multi-Store Inventory, Production & Sales Management System** for a manufacturing company. The system must track materials from raw material purchase up to final finished product sales while monitoring wastage, production efficiency, inventory movement, approvals, and financial transactions.
+
+# 1. User Roles & Permissions
+
+Implement role-based access control with different permissions for:
+
+* Super Admin
+* Store Manager
+* Production Manager
+* Sales Officer
+* Finance Officer
+* Approver / General Manager
+
+Each role should only access permitted modules and actions.
+
+---
+
+# 2. Store Structure & Workflow
+
+The company operates multiple connected stores:
+
+1. Main Raw Material Store
+2. Semi-Finished Production Mini Store
+3. Final Production Mini Store
+4. Main Finished Product Store
+
+The system must track item movement step-by-step between all stores.
+
+## Main Workflow
+
+* Raw materials are purchased and received into the Main Raw Material Store.
+* Materials are transferred to the Semi-Finished Production Store.
+* Semi-finished products are processed and transferred to the Final Production Store.
+* Final products are transferred to the Main Finished Product Store.
+* Final products are sold to customers.
+
+The system must track:
+
+* Quantities moved
+* Wastage/loss at each stage
+* Production outputs
+* Remaining balances
+* Batch tracking
+* Inventory history
+* Item movement logs
+
+---
+
+# 3. Direct Packaging Material Workflow
+
+The system must also support direct item requests from the Main Finished Product Store to the Main Raw Material Store specifically for packaging materials.
+
+Packaging materials may include:
+
+* Cartons
+* Bottles
+* Caps
+* Labels
+* Stickers
+* Plastic bags
+* Wrappers
+* Sealing materials
+* Packaging accessories
+
+## Packaging Workflow
+
+1. Finished Product Store creates packaging material request.
+2. Main Raw Material Store reviews request.
+3. Request approved or rejected.
+4. Shipment initiated.
+5. Finished Product Store confirms receipt.
+
+The system must:
+
+* Distinguish packaging materials from production raw materials.
+* Track packaging material usage separately.
+* Deduct packaging inventory automatically.
+* Link packaging materials to finished products where applicable.
+* Include packaging material usage in wastage and inventory reports.
+
+---
+
+# 4. GRN (Goods Receiving Note) Module
+
+The Main Raw Material Store Manager should:
+
+* Create GRN whenever goods are received from suppliers/vendors.
+
+GRN form should include:
+
+* Supplier company name
+* Invoice number
+* Purchase order number
+* Delivery note number
+* Date received
+* Item name
+* Quantity
+* Unit
+* Unit cost
+* Total cost
+* Batch number
+* Expiry date (if applicable)
+* Warehouse/store location
+* Attachments/documents upload
+
+## Approval Workflow
+
+* GRN must go through manager approval before payment is processed.
+* Finance department can only process payments after approval.
+
+GRN statuses:
+
+* Draft
+* Pending Approval
+* Approved
+* Rejected
+* Paid
+
+Generate printable GRN documents and PDF exports.
+
+---
+
+# 5. Store Request & Transfer Module
+
+Mini stores should be able to request items from other stores through the system.
+
+## Transfer Workflow
+
+1. Request created
+2. Store manager reviews request
+3. Approve or reject request
+4. Shipment initiated
+5. Receiving store confirms receipt
+
+Track:
+
+* Requested quantity
+* Approved quantity
+* Shipped quantity
+* Received quantity
+* Transfer date
+* Transfer status
+* Transfer notes
+* Responsible staff
+
+Generate:
+
+* Transfer Note
+* Delivery Note
+* Receiving Confirmation
+
+Inventory should update automatically after transfers are confirmed.
+
+---
+
+# 6. Production & Wastage Tracking
+
+The system must support:
+
+* Conversion of raw materials into semi-finished products.
+* Conversion of semi-finished products into finished products.
+
+Track:
+
+* Input materials
+* Output products
+* Wastage amount
+* Production efficiency
+* Production date
+* Batch number
+* Responsible employee
+
+Include calculations for:
+
+* Material consumption
+* Yield percentage
+* Wastage percentage
+* Cost per production batch
+
+Generate:
+
+* Production reports
+* Wastage reports
+* Efficiency reports
+
+---
+
+# 7. Inventory Management
+
+Inventory module should support:
+
+* Multi-store inventory tracking
+* Batch tracking
+* Unit conversions
+* Reorder levels
+* Stock adjustments
+* Physical stock counting
+* Barcode/QR code support
+
+Features:
+
+* Real-time stock balance
+* Low stock alerts
+* Expiry alerts
+* Inventory movement history
+* Damaged goods tracking
+* Packaging inventory tracking
+
+---
+
+# 8. Sales Registration Module
+
+Create a detailed sales entry section.
+
+## Sales Form Fields
+
+* Customer type:
+
+  * Company
+  * Walk-in customer
+* Buyer company/customer name
+* Customer TIN
+* FS number
+* Invoice number
+* Sales date
+* VAT applicable or non-VAT
+* VAT amount
+* Withholding amount
+* Credit sale or cash sale
+* Due date for credit sales
+* Payment method:
+
+  * Cash
+  * Bank transfer
+  * Cheque
+* Bank selection (if bank transfer)
+* Item selection
+* Quantity
+* Unit
+* Unit price
+* Discount
+* Total amount
+* Salesperson
+* Remarks
+
+## Invoice & Receipt
+
+After clicking Submit:
+
+* Generate printable invoice/receipt PDF
+* Generate automatic invoice number
+* Reduce inventory automatically
+* Save transaction history
+
+Invoice should include:
+
+* Company logo
+* Customer information
+* Item list
+* Tax breakdown
+* Payment details
+* Signature section
+* QR code or barcode (optional)
+
+---
+
+# 9. Credit Sales & Payment Tracking
+
+Track:
+
+* Outstanding credit balances
+* Partial payments
+* Payment due dates
+* Customer payment history
+* Overdue invoices
+
+Generate:
+
+* Customer statements
+* Aging reports
+* Credit balance reports
+
+---
+
+# 10. Reports & Analytics Dashboard
+
+Create dashboards and detailed reporting modules.
+
+## Reports
+
+Generate:
+
+* Daily sales report
+* Monthly sales report
+* Yearly sales report
+* Inventory balance report
+* Inventory movement report
+* Packaging material report
+* Production report
+* Wastage report
+* Supplier report
+* Customer report
+* VAT report
+* Credit sales report
+* Outstanding payments report
+* Profit/Loss summary
+
+## Dashboard Widgets
+
+Display:
+
+* Total stock
+* Low stock alerts
+* Pending approvals
+* Daily sales summary
+* Monthly sales trends
+* Production summary
+* Fast-moving items
+* Wastage statistics
+* Packaging material usage
+* Outstanding payments
+
+Allow:
+
+* PDF export
+* Excel export
+* Printing
+* Filtering by date/store/product/category
+
+---
+
+# 11. Notifications & Alerts
+
+System should send alerts for:
+
+* Low stock
+* Pending approvals
+* Delayed transfers
+* Unpaid invoices
+* Credit due dates
+* Expired products
+* Production delays
+* High wastage percentages
+
+---
+
+# 12. Audit & Activity Tracking
+
+Maintain full audit logs for:
+
+* Record creation
+* Record updates
+* Approvals/rejections
+* Inventory transfers
+* Deleted records
+* User login history
+
+Track:
+
+* User actions
+* Timestamps
+* IP/device logs (optional)
+
+Every inventory movement must be traceable from raw material purchase up to final product sale.
+
+---
+
+# 13. Technical Requirements
+
+Build using modern technologies.
+
+## Suggested Stack
+
+### Frontend
+
+* React or Next.js
+* TypeScript
+* Tailwind CSS
+
+### Backend
+
+* Node.js + Express
+  OR
+* Django
+
+### Database
+
+* PostgreSQL or MySQL
+
+---
+
+# 14. Core Features
+
+Include:
+
+* REST API
+* Authentication & Authorization
+* Secure login
+* Responsive design
+* Dark/light mode
+* Multi-user support
+* Search & filtering
+* Pagination
+* Attachment uploads
+* Backup & restore system
+* Offline-ready support (optional)
+
+---
+
+# 15. UI/UX Requirements
+
+Design should be:
+
+* Modern
+* Professional
+* Clean
+* Dashboard-based
+* Mobile responsive
+* Easy to use
+
+Include:
+
+* Sidebar navigation
+* Charts and graphs
+* Interactive tables
+* Advanced filters
+* Export buttons
+* Notification center
+
+---
+
+# 16. Database Design
+
+Create normalized database schema for:
+
+* Users
+* Roles
+* Stores
+* Warehouses
+* Products
+* Product categories
+* Packaging materials
+* Suppliers
+* Customers
+* GRN
+* Transfers
+* Production batches
+* Wastage logs
+* Sales
+* Payments
+* Credit tracking
+* Reports
+* Notifications
+* Audit logs
+
+Include:
+
+* Proper relationships
+* Foreign keys
+* Constraints
+* Transaction safety
+
+---
+
+# 17. API Requirements
+
+Create APIs for:
+
+* Authentication
+* Inventory management
+* Store transfers
+* GRN approvals
+* Production tracking
+* Sales management
+* Reporting
+* Notifications
+
+Include:
+
+* Validation
+* Error handling
+* Pagination
+* Filtering
+* Role-based security
+
+---
+
+# 18. Deliverables
+
+Provide:
+
+* Full source code
+* Database schema
+* API documentation
+* Deployment guide
+* Installation instructions
+* Sample data
+* Test accounts
+* Production-ready architecture
+
+The final system should be scalable, secure, maintainable, and suitable for real manufacturing and inventory operations.

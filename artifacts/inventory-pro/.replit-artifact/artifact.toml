@@ -1,0 +1,31 @@
+kind = "web"
+previewPath = "/"
+title = "Multi-Store Inventory Pro"
+version = "1.0.0"
+id = "artifacts/inventory-pro"
+router = "path"
+
+[[integratedSkills]]
+name = "react-vite"
+version = "1.0.0"
+
+[[services]]
+name = "web"
+paths = [ "/" ]
+localPort = 23506
+
+[services.development]
+run = "pnpm --filter @workspace/inventory-pro run dev"
+
+[services.production]
+build = [ "pnpm", "--filter", "@workspace/inventory-pro", "run", "build" ]
+publicDir = "artifacts/inventory-pro/dist/public"
+serve = "static"
+
+[[services.production.rewrites]]
+from = "/*"
+to = "/index.html"
+
+[services.env]
+PORT = "23506"
+BASE_PATH = "/"
