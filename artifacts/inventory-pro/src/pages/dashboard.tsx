@@ -3,7 +3,6 @@ import { Link } from "wouter";
 import {
   useGetDashboardSummary,
   useGetDashboardSalesTrend,
-  useGetDashboardTopProducts,
   useGetDashboardAlerts,
   useGetDashboardPendingApprovals,
 } from "@workspace/api-client-react";
@@ -18,7 +17,6 @@ import {
   Boxes,
   CircleDollarSign,
   ClipboardCheck,
-  CreditCard,
   Factory,
   PackageX,
   TrendingUp,
@@ -33,33 +31,65 @@ import {
   YAxis,
 } from "recharts";
 
+const formatETB = (val: number) =>
+  `ETB ${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+
 function StatCard({
   title,
   value,
   icon: Icon,
   description,
   isLoading,
+  color,
 }: {
   title: string;
   value: string | number;
   icon: React.ElementType;
   description?: string;
   isLoading?: boolean;
+  color: "amber" | "teal" | "purple" | "coral";
 }) {
+  const colorMap = {
+    amber: {
+      bg: "bg-amber-100 dark:bg-amber-900/30",
+      icon: "text-amber-600 dark:text-amber-400",
+      card: "border-amber-200/60 dark:border-amber-800/40",
+    },
+    teal: {
+      bg: "bg-teal-100 dark:bg-teal-900/30",
+      icon: "text-teal-600 dark:text-teal-400",
+      card: "border-teal-200/60 dark:border-teal-800/40",
+    },
+    purple: {
+      bg: "bg-purple-100 dark:bg-purple-900/30",
+      icon: "text-purple-600 dark:text-purple-400",
+      card: "border-purple-200/60 dark:border-purple-800/40",
+    },
+    coral: {
+      bg: "bg-rose-100 dark:bg-rose-900/30",
+      icon: "text-rose-600 dark:text-rose-400",
+      card: "border-rose-200/60 dark:border-rose-800/40",
+    },
+  };
+
+  const c = colorMap[color];
+
   return (
-    <Card>
-      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-        <CardTitle className="text-sm font-medium">{title}</CardTitle>
-        <Icon className="h-4 w-4 text-muted-foreground" />
+    <Card className={`${c.card}`}>
+      <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-3">
+        <CardTitle className="text-sm font-semibold text-muted-foreground">{title}</CardTitle>
+        <div className={`h-9 w-9 rounded-xl flex items-center justify-center ${c.bg}`}>
+          <Icon className={`h-5 w-5 ${c.icon}`} />
+        </div>
       </CardHeader>
       <CardContent>
         {isLoading ? (
-          <Skeleton className="h-7 w-20" />
+          <Skeleton className="h-8 w-24" />
         ) : (
-          <div className="text-2xl font-bold">{value}</div>
+          <div className="text-2xl font-bold tracking-tight">{value}</div>
         )}
         {description && (
-          <p className="text-xs text-muted-foreground mt-1">{description}</p>
+          <p className="text-xs text-muted-foreground mt-1.5">{description}</p>
         )}
       </CardContent>
     </Card>
@@ -68,15 +98,12 @@ function StatCard({
 
 export default function Dashboard() {
   const { data: summary, isLoading: isLoadingSummary } = useGetDashboardSummary();
-  const { data: salesTrend, isLoading: isLoadingTrend } = useGetDashboardSalesTrend({ period: 'monthly' });
+  const { data: salesTrend, isLoading: isLoadingTrend } = useGetDashboardSalesTrend({ period: "monthly" });
   const { data: alerts, isLoading: isLoadingAlerts } = useGetDashboardAlerts();
   const { data: pendingApprovals, isLoading: isLoadingApprovals } = useGetDashboardPendingApprovals();
 
-  const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
-
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 p-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Dashboard</h1>
@@ -89,14 +116,16 @@ export default function Dashboard() {
       <div className="grid gap-4 md:grid-cols-2 lg:grid-cols-4">
         <StatCard
           title="Total Stock Value"
-          value={summary ? formatCurrency(summary.totalStockValue) : "$0.00"}
+          value={summary ? formatETB(summary.totalStockValue) : "ETB 0.00"}
           icon={CircleDollarSign}
+          color="amber"
           isLoading={isLoadingSummary}
         />
         <StatCard
           title="Today's Sales"
-          value={summary ? formatCurrency(summary.todaySales) : "$0.00"}
+          value={summary ? formatETB(summary.todaySales) : "ETB 0.00"}
           icon={TrendingUp}
+          color="teal"
           description={summary?.todaySalesCount ? `${summary.todaySalesCount} invoices` : undefined}
           isLoading={isLoadingSummary}
         />
@@ -104,13 +133,15 @@ export default function Dashboard() {
           title="Active Batches"
           value={summary?.activeBatches || 0}
           icon={Factory}
+          color="purple"
           isLoading={isLoadingSummary}
         />
         <StatCard
           title="Low Stock Items"
           value={summary?.lowStockCount || 0}
           icon={PackageX}
-          description="Needs attention"
+          color="coral"
+          description="Need restocking"
           isLoading={isLoadingSummary}
         />
       </div>
@@ -118,7 +149,10 @@ export default function Dashboard() {
       <div className="grid gap-6 md:grid-cols-7 lg:grid-cols-8">
         <Card className="md:col-span-4 lg:col-span-5">
           <CardHeader>
-            <CardTitle>Sales Trend (30 Days)</CardTitle>
+            <CardTitle className="flex items-center gap-2">
+              <TrendingUp className="h-4 w-4 text-primary" />
+              Sales Trend (Monthly)
+            </CardTitle>
           </CardHeader>
           <CardContent>
             {isLoadingTrend ? (
@@ -131,8 +165,8 @@ export default function Dashboard() {
                   <AreaChart data={salesTrend} margin={{ top: 10, right: 10, left: 0, bottom: 0 }}>
                     <defs>
                       <linearGradient id="colorValue" x1="0" y1="0" x2="0" y2="1">
-                        <stop offset="5%" stopColor="hsl(var(--primary))" stopOpacity={0.3} />
-                        <stop offset="95%" stopColor="hsl(var(--primary))" stopOpacity={0} />
+                        <stop offset="5%" stopColor="hsl(38 92% 48%)" stopOpacity={0.35} />
+                        <stop offset="95%" stopColor="hsl(38 92% 48%)" stopOpacity={0} />
                       </linearGradient>
                     </defs>
                     <CartesianGrid strokeDasharray="3 3" vertical={false} stroke="hsl(var(--border))" />
@@ -148,7 +182,7 @@ export default function Dashboard() {
                       fontSize={12}
                       tickLine={false}
                       axisLine={false}
-                      tickFormatter={(value) => `$${value}`}
+                      tickFormatter={(value) => `ETB ${(value / 1000).toFixed(0)}K`}
                     />
                     <Tooltip
                       contentStyle={{
@@ -157,13 +191,13 @@ export default function Dashboard() {
                         borderRadius: "var(--radius)",
                       }}
                       itemStyle={{ color: "hsl(var(--foreground))" }}
-                      formatter={(value: number) => [formatCurrency(value), "Sales"]}
+                      formatter={(value: number) => [formatETB(value), "Sales"]}
                     />
                     <Area
                       type="monotone"
                       dataKey="value"
-                      stroke="hsl(var(--primary))"
-                      strokeWidth={2}
+                      stroke="hsl(38 92% 48%)"
+                      strokeWidth={2.5}
                       fillOpacity={1}
                       fill="url(#colorValue)"
                     />
@@ -178,76 +212,82 @@ export default function Dashboard() {
           </CardContent>
         </Card>
 
-        <div className="md:col-span-3 lg:col-span-3 space-y-6">
+        <div className="md:col-span-3 lg:col-span-3 space-y-4">
           <Card>
             <CardHeader className="pb-3">
-              <CardTitle>Pending Approvals</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <ClipboardCheck className="h-4 w-4 text-primary" />
+                Pending Approvals
+              </CardTitle>
             </CardHeader>
-            <CardContent>
+            <CardContent className="space-y-3">
               {isLoadingApprovals ? (
                 <div className="space-y-2">
                   <Skeleton className="h-12 w-full" />
                   <Skeleton className="h-12 w-full" />
                 </div>
               ) : (
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
+                <>
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-amber-50 dark:bg-amber-950/30 border border-amber-200/50">
                     <div className="flex items-center gap-2 text-sm font-medium">
-                      <ClipboardCheck className="h-4 w-4 text-muted-foreground" />
-                      Goods Receiving Notes
+                      <ClipboardCheck className="h-4 w-4 text-amber-600" />
+                      GRNs
                     </div>
                     <Badge variant={pendingApprovals?.grns ? "destructive" : "secondary"}>
                       {pendingApprovals?.grns || 0}
                     </Badge>
                   </div>
-                  <div className="flex items-center justify-between">
+                  <div className="flex items-center justify-between p-3 rounded-xl bg-purple-50 dark:bg-purple-950/30 border border-purple-200/50">
                     <div className="flex items-center gap-2 text-sm font-medium">
-                      <Boxes className="h-4 w-4 text-muted-foreground" />
-                      Store Transfers
+                      <Boxes className="h-4 w-4 text-purple-600" />
+                      Transfers
                     </div>
                     <Badge variant={pendingApprovals?.transfers ? "destructive" : "secondary"}>
                       {pendingApprovals?.transfers || 0}
                     </Badge>
                   </div>
-                </div>
+                </>
               )}
             </CardContent>
           </Card>
 
           <Card className="flex-1">
             <CardHeader className="pb-3 flex flex-row items-center justify-between">
-              <CardTitle>System Alerts</CardTitle>
+              <CardTitle className="flex items-center gap-2 text-base">
+                <AlertTriangle className="h-4 w-4 text-primary" />
+                System Alerts
+              </CardTitle>
               <Link href="/notifications">
-                <Button variant="ghost" size="sm" className="h-8 text-xs">
-                  View all <ArrowRight className="ml-1 h-3 w-3" />
+                <Button variant="ghost" size="sm" className="h-7 text-xs">
+                  All <ArrowRight className="ml-1 h-3 w-3" />
                 </Button>
               </Link>
             </CardHeader>
             <CardContent>
-              <div className="space-y-3">
+              <div className="space-y-2">
                 {isLoadingAlerts ? (
                   Array.from({ length: 3 }).map((_, i) => (
-                    <Skeleton key={i} className="h-16 w-full" />
+                    <Skeleton key={i} className="h-14 w-full" />
                   ))
                 ) : alerts && alerts.length > 0 ? (
                   alerts.slice(0, 4).map((alert) => (
                     <Alert
                       key={alert.id}
                       variant={alert.severity === "critical" ? "destructive" : "default"}
-                      className={`p-3 ${alert.severity === "warning" ? "border-orange-500/50 bg-orange-500/10 text-orange-600 dark:text-orange-400" : ""}`}
+                      className={`p-3 ${alert.severity === "warning" ? "border-amber-400/50 bg-amber-50 dark:bg-amber-950/20 text-amber-700 dark:text-amber-400" : ""}`}
                     >
                       <AlertTriangle className="h-4 w-4" />
-                      <AlertTitle className="text-xs font-semibold mb-1">
+                      <AlertTitle className="text-xs font-semibold mb-0.5">
                         {alert.type.replace(/_/g, " ").toUpperCase()}
                       </AlertTitle>
-                      <AlertDescription className="text-xs">
+                      <AlertDescription className="text-xs leading-relaxed">
                         {alert.message}
                       </AlertDescription>
                     </Alert>
                   ))
                 ) : (
-                  <div className="text-sm text-muted-foreground text-center py-4">
-                    No active alerts.
+                  <div className="text-sm text-muted-foreground text-center py-6">
+                    ✓ No active alerts
                   </div>
                 )}
               </div>

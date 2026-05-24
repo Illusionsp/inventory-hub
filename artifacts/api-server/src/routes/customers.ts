@@ -67,6 +67,14 @@ router.patch("/customers/:id", requireAuth, async (req, res): Promise<void> => {
   res.json(c);
 });
 
+router.delete("/customers/:id", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+  const [c] = await db.select().from(customersTable).where(eq(customersTable.id, id));
+  if (!c) { res.status(404).json({ error: "Not found" }); return; }
+  await db.delete(customersTable).where(eq(customersTable.id, id));
+  res.status(204).end();
+});
+
 router.get("/customers/:id/statement", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const [customer] = await db.select().from(customersTable).where(eq(customersTable.id, id));

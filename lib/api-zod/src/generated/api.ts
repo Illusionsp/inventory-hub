@@ -455,6 +455,11 @@ export const UpdateCustomerResponse = zod.object({
 })
 
 
+export const DeleteCustomerParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
 export const GetCustomerStatementParams = zod.object({
   "id": zod.coerce.number()
 })

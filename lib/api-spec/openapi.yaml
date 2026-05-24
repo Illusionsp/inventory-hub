@@ -551,6 +551,18 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Customer"
+    delete:
+      operationId: deleteCustomer
+      tags: [customers]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
 
   /customers/{id}/statement:
     get:

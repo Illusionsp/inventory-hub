@@ -1,0 +1,74 @@
+Additional Corrections and Updates Needed:
+
+1. Currency Update
+
+* Replace all “$” currency symbols in the system with “ETB”.
+* Ensure all reports, invoices, GRNs, sales pages, dashboards, and calculations display ETB correctly.
+
+2. GRN (Goods Receiving Note) Improvements
+
+* Add a field for the Store Manager’s Name who creates the GRN.
+* Add a field for the Approving Party’s Name.
+* Generate an automatic serial number for every new GRN created.
+* After completing a GRN, automatically generate a clean and printable document.
+* The generated GRN document should:
+
+  * Have a compact and structured table format.
+  * Include company/store details.
+  * Include supplier information.
+  * Include item details, quantity, unit price, totals, and dates.
+  * Include the Store Manager and Approver names.
+  * Be printable and exportable.
+
+3. Correct Financial Formulas
+   Please apply the following formulas correctly throughout the system:
+
+* Non VAT Amount:
+  Non VAT = Quantity × Unit Price
+
+* Amount Before VAT (B4 VAT):
+  B4 VAT = Quantity × Unit Price
+
+* VAT:
+  VAT = B4 VAT × 0.15
+
+* Withhold Deduction:
+  Withhold = B4 VAT × 0.03
+
+* Withhold for Non VAT:
+  Withhold for Non VAT = Non VAT × 0.03
+
+* Ensure totals are calculated automatically and accurately in:
+
+  * Sales invoices
+  * Purchase sections
+  * Reports
+  * GRN calculations
+
+4. Customer Management Section
+
+* Make it possible to:
+
+  * Add new customers
+  * Edit customer information
+  * Delete customers
+* Add confirmation before deleting customers.
+
+5. Product/Item Management
+
+* Make it possible to delete unwanted products/items from the product adding section.
+* Ensure deleted products do not break previous transaction records.
+* Add confirmation before deletion.
+
+6. Sales Invoice Improvements
+
+* Add a dedicated field/space for Withhold Amount Deduction in the sales invoice section.
+* This field should only apply to invoices/sales that require withhold deduction.
+* Ensure the final payable amount is adjusted correctly after withhold deduction.
+* Reflect the withhold amount properly in reports and printable invoices.
+
+General Reminder:
+
+* Keep all current working features functional.
+* Test calculations carefully to avoid incorrect financial results.
+* Ensure all generated documents are clean, professional, and printable.
