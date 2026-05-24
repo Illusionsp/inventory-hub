@@ -1,0 +1,93 @@
+Additional System Corrections and Access Control Updates Needed:
+
+1. User Login & Role-Based Access Control
+   The system should support secure login functionality with username and password for each user.
+
+Required User Roles:
+
+* Admin
+* Store Manager
+* Finance
+* Other staff roles if needed
+
+Access Rules:
+
+* Admin:
+
+  * Can create users
+  * Can assign usernames and passwords
+  * Can manage permissions/access rights
+  * Can decide which sections each user can access
+  * Can see all modules and reports
+
+* Store Manager:
+
+  * Can create GRN
+  * Can print GRN
+  * Can manage store-related activities only
+  * Should NOT see finance or admin-only sections
+
+* Manager/Approving Party:
+
+  * Can approve GRNs from their own account
+  * Can view approval history
+  * Should only access approval-related sections
+
+* Finance User:
+
+  * Can mark GRNs as paid
+  * Can handle payment-related activities
+  * Can view financial sections only
+  * Should NOT access admin settings unnecessarily
+
+The system should ensure:
+
+* Users only see menus and pages related to their role.
+* Unauthorized pages/actions are blocked properly.
+* Sessions and authentication work securely.
+
+2. GRN Workflow & Printable Document
+   The GRN process should follow this workflow:
+
+Step 1:
+
+* Store Manager creates the GRN.
+
+Step 2:
+
+* Manager/Approver logs into their account and approves the GRN.
+
+Step 3:
+
+* Finance logs into their account and marks the GRN as paid.
+
+Additional Requirements:
+
+* Every GRN should have:
+
+  * Auto-generated serial number
+  * Store Manager name
+  * Approver name
+  * Payment status
+  * Approval status
+  * Date and time records
+
+* The GRN document should:
+
+  * Be printable
+  * Have a professional compact layout
+  * Include structured tables
+  * Show signatures/approval fields if possible
+  * Be exportable as PDF or printable page
+
+3. Customer Delete Error Fix
+   The “Delete Customer” action is currently failing and needs correction.
+
+Please:
+
+* Identify the cause of the delete failure.
+* Fix backend/API/database errors related to deleting customers.
+* Ensure customer deletion works correctly.
+* Add confirmation popup before deletion.
+* Prevent system crashes or broken references after deleting customers.
+* If customers are linked to invoices/sales history, apply proper handling instead of causing errors.

@@ -71,6 +71,15 @@ router.delete("/customers/:id", requireAuth, async (req, res): Promise<void> => 
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const [c] = await db.select().from(customersTable).where(eq(customersTable.id, id));
   if (!c) { res.status(404).json({ error: "Not found" }); return; }
+
+  const salesCount = await db.$count(salesTable, eq(salesTable.customerId, id));
+  if (salesCount > 0) {
+    res.status(409).json({
+      error: `Cannot delete: this customer has ${salesCount} sales record(s). Deactivate them instead to preserve history.`,
+    });
+    return;
+  }
+
   await db.delete(customersTable).where(eq(customersTable.id, id));
   res.status(204).end();
 });

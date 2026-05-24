@@ -76,16 +76,41 @@ router.post("/grns", requireAuth, async (req, res): Promise<void> => {
 
 router.get("/grns/:id", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
-  const [grn] = await db
-    .select({ id: grnsTable.id, grnNumber: grnsTable.grnNumber, status: grnsTable.status, supplierId: grnsTable.supplierId, supplierName: suppliersTable.name, storeId: grnsTable.storeId, storeName: storesTable.name, invoiceNumber: grnsTable.invoiceNumber, poNumber: grnsTable.poNumber, deliveryNoteNumber: grnsTable.deliveryNoteNumber, receivedDate: grnsTable.receivedDate, totalCost: grnsTable.totalCost, notes: grnsTable.notes, approvedById: grnsTable.approvedById, approvedAt: grnsTable.approvedAt, rejectionReason: grnsTable.rejectionReason, createdAt: grnsTable.createdAt })
+
+  const rows = await db
+    .select({
+      id: grnsTable.id, grnNumber: grnsTable.grnNumber, status: grnsTable.status,
+      supplierId: grnsTable.supplierId, supplierName: suppliersTable.name,
+      storeId: grnsTable.storeId, storeName: storesTable.name,
+      invoiceNumber: grnsTable.invoiceNumber, poNumber: grnsTable.poNumber,
+      deliveryNoteNumber: grnsTable.deliveryNoteNumber, receivedDate: grnsTable.receivedDate,
+      totalCost: grnsTable.totalCost, notes: grnsTable.notes,
+      createdById: grnsTable.createdById,
+      approvedById: grnsTable.approvedById, approvedAt: grnsTable.approvedAt,
+      rejectionReason: grnsTable.rejectionReason, createdAt: grnsTable.createdAt,
+    })
     .from(grnsTable)
     .leftJoin(suppliersTable, eq(grnsTable.supplierId, suppliersTable.id))
     .leftJoin(storesTable, eq(grnsTable.storeId, storesTable.id))
     .where(eq(grnsTable.id, id));
 
-  if (!grn) { res.status(404).json({ error: "Not found" }); return; }
+  if (!rows.length) { res.status(404).json({ error: "Not found" }); return; }
+  const grn = rows[0];
+
+  let createdByName: string | null = null;
+  let approverName: string | null = null;
+
+  if (grn.createdById) {
+    const [u] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, grn.createdById));
+    if (u) createdByName = u.name;
+  }
+  if (grn.approvedById) {
+    const [u] = await db.select({ name: usersTable.name }).from(usersTable).where(eq(usersTable.id, grn.approvedById));
+    if (u) approverName = u.name;
+  }
+
   const items = await db.select().from(grnItemsTable).where(eq(grnItemsTable.grnId, id));
-  res.json({ ...grn, approverName: null, items });
+  res.json({ ...grn, createdByName, approverName, items });
 });
 
 router.patch("/grns/:id", requireAuth, async (req, res): Promise<void> => {

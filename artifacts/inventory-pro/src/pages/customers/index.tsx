@@ -164,7 +164,14 @@ export default function CustomersList() {
           setDeleteId(null);
           invalidate();
         },
-        onError: () => toast({ title: "Failed to delete", variant: "destructive" }),
+        onError: (err: any) => {
+          const msg =
+            err?.response?.data?.error ||
+            err?.message ||
+            "Failed to delete customer";
+          toast({ title: msg, variant: "destructive", description: "Tip: deactivate the customer to hide them without losing records." });
+          setDeleteId(null);
+        },
       }
     );
   };
