@@ -18,10 +18,9 @@ import CustomerStatement from "@/pages/customers/statement";
 import GrnList from "@/pages/grn/index";
 import GrnNew from "@/pages/grn/new";
 import GrnDetail from "@/pages/grn/detail";
-import TransferList from "@/pages/transfers/index";
 import TransferNew from "@/pages/transfers/new";
 import TransferDetail from "@/pages/transfers/detail";
-import StoreRequestList from "@/pages/store-requests/index";
+import RequestingPage from "@/pages/store-requests/index";
 import StoreRequestNew from "@/pages/store-requests/new";
 import StoreRequestDetail from "@/pages/store-requests/detail";
 import ProductionList from "@/pages/production/index";
@@ -113,12 +112,12 @@ function Router() {
       <Route path="/grn">{() => <ProtectedRoute component={GrnList} />}</Route>
       <Route path="/grn/new">{() => <ProtectedRoute component={GrnNew} />}</Route>
       <Route path="/grn/:id">{(params) => <ProtectedRoute component={GrnDetail} id={params.id} />}</Route>
-      <Route path="/transfers">{() => <ProtectedRoute component={TransferList} />}</Route>
-      <Route path="/transfers/new">{() => <ProtectedRoute component={TransferNew} />}</Route>
-      <Route path="/transfers/:id">{(params) => <ProtectedRoute component={TransferDetail} id={params.id} />}</Route>
-      <Route path="/store-requests">{() => <ProtectedRoute component={StoreRequestList} />}</Route>
+      <Route path="/store-requests">{() => <ProtectedRoute component={RequestingPage} />}</Route>
+      <Route path="/transfers">{() => <ProtectedRoute component={RequestingPage} />}</Route>
       <Route path="/store-requests/new">{() => <ProtectedRoute component={StoreRequestNew} />}</Route>
       <Route path="/store-requests/:id">{(params) => <ProtectedRoute component={StoreRequestDetail} id={params.id} />}</Route>
+      <Route path="/transfers/new">{() => <ProtectedRoute component={TransferNew} />}</Route>
+      <Route path="/transfers/:id">{(params) => <ProtectedRoute component={TransferDetail} id={params.id} />}</Route>
       <Route path="/production">{() => <ProtectedRoute component={ProductionList} />}</Route>
       <Route path="/production/new">{() => <ProtectedRoute component={ProductionNew} />}</Route>
       <Route path="/production/:id">{(params) => <ProtectedRoute component={ProductionDetail} id={params.id} />}</Route>

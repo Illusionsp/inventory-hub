@@ -47,6 +47,8 @@ interface NavItem {
   icon: React.ElementType;
   url: string;
   roles?: Role[];
+  /** Extra path prefixes that should also mark this item active */
+  activeFor?: string[];
 }
 
 interface NavGroup {
@@ -70,8 +72,7 @@ const navGroups: NavGroup[] = [
       { title: "Stock Levels", icon: Package, url: "/inventory", roles: ["super_admin", "store_manager", "approver"] },
       { title: "Movements", icon: ArrowRightLeft, url: "/inventory/movements", roles: ["super_admin", "store_manager"] },
       { title: "Production Batches", icon: Factory, url: "/production", roles: ["super_admin", "store_manager"] },
-      { title: "Store Transfers", icon: Box, url: "/transfers", roles: ["super_admin", "store_manager", "approver"] },
-      { title: "Store Requests", icon: SendHorizonal, url: "/store-requests", roles: ["super_admin", "store_manager", "approver"] },
+      { title: "Requesting", icon: SendHorizonal, url: "/store-requests", activeFor: ["/transfers"], roles: ["super_admin", "store_manager", "approver"] },
       { title: "Goods Receiving", icon: ClipboardList, url: "/grn", roles: ["super_admin", "store_manager", "approver", "finance", "accountant"] },
     ],
   },
@@ -167,7 +168,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                   <SidebarGroupContent>
                     <SidebarMenu>
                       {visibleItems.map((item) => {
-                        const isActive = location === item.url || location.startsWith(item.url + "/");
+                        const isActive =
+                          location === item.url ||
+                          location.startsWith(item.url + "/") ||
+                          (item.activeFor ?? []).some(p => location === p || location.startsWith(p + "/"));
                         return (
                           <SidebarMenuItem key={item.title}>
                             <SidebarMenuButton
