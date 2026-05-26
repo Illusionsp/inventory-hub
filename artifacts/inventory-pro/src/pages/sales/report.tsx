@@ -135,7 +135,6 @@ const STS_LABELS: Record<string, string> = {
 
 function generatePrintHtml(data: SalesReportData, applied: FilterState): string {
   const now = new Date().toLocaleString("en-US");
-  const s = data.summary;
 
   const filterLine = [
     applied.paymentType && `Payment Type: ${applied.paymentType}`,
@@ -143,20 +142,6 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
     applied.status && `Status: ${STS_LABELS[applied.status] ?? applied.status}`,
   ].filter(Boolean).join(" | ");
 
-  const kpiHtml = [
-    ["Total Revenue", `ETB ${s.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}`],
-    ["Invoices Issued", String(s.totalInvoices)],
-    ["VAT Collected", `ETB ${s.vatCollected.toLocaleString("en-US", { minimumFractionDigits: 2 })}`],
-    ["Withholding (WHT)", `ETB ${s.withholdingTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}`],
-    ["Cash Revenue", `ETB ${s.cashRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}`],
-    ["Credit Revenue", `ETB ${s.creditRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}`],
-    ["Subtotal", `ETB ${s.subtotalSum.toLocaleString("en-US", { minimumFractionDigits: 2 })}`],
-    ["Discounts", `ETB ${s.discountTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}`],
-  ].map(([label, val]) => `
-    <div class="kpi">
-      <div class="kpi-label">${label}</div>
-      <div class="kpi-value">${val}</div>
-    </div>`).join("");
 
   const invoiceRows = data.invoices.map(inv => {
     const n = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2 });
@@ -193,10 +178,6 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
   .sub { color: #666; font-size: 12px; margin-bottom: 16px; }
   .meta { display: flex; gap: 24px; font-size: 11px; color: #555; margin-bottom: 20px; border-top: 2px solid #111; padding-top: 10px; }
   .meta span b { color: #111; }
-  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px; }
-  .kpi { border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; }
-  .kpi-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
-  .kpi-value { font-size: 13px; font-weight: 700; font-family: monospace; }
   h2 { font-size: 13px; font-weight: 700; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
   table { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
   th { background: #f3f4f6; text-align: left; padding: 6px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: #555; white-space: nowrap; border-bottom: 2px solid #ddd; }
@@ -231,8 +212,6 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
   <span style="margin-left:auto;"><b>Generated:</b> ${now}</span>
 </div>
 
-<div class="kpis">${kpiHtml}</div>
-
 <h2>Invoice Details (${data.invoices.length} invoice${data.invoices.length !== 1 ? "s" : ""})</h2>
 <table>
   <thead>
@@ -244,16 +223,6 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
     </tr>
   </thead>
   <tbody>${invoiceRows}</tbody>
-  <tfoot>
-    <tr class="total-row">
-      <td colspan="8">TOTAL (${data.invoices.length} invoices)</td>
-      <td class="num">${n(s.subtotalSum)}</td>
-      <td class="num amber">${n(s.vatCollected)}</td>
-      <td class="num red">${s.withholdingTotal > 0 ? n(s.withholdingTotal) : "—"}</td>
-      <td class="num">${n(s.totalRevenue)}</td>
-      <td></td>
-    </tr>
-  </tfoot>
 </table>
 
 
