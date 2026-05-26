@@ -19,56 +19,49 @@ export function broadcastAuthChange() {
     channel.postMessage({ type: "AUTH_CHANGED" });
     channel.close();
   } catch {
-    // BroadcastChannel not available (e.g. some embedded contexts)
+    // BroadcastChannel not available in some embedded contexts
   }
 }
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const queryClient = useQueryClient();
-  const { data: user, isLoading } = useGetMe({
+
+  // staleTime: 60s — prevents constant background refetches that flash data
+  // to undefined and cause redirect loops. BroadcastChannel handles cross-tab
+  // invalidation explicitly when needed.
+  const { data: user, isLoading, isFetching } = useGetMe({
     query: {
       queryKey: getGetMeQueryKey(),
-      staleTime: 0,
+      staleTime: 60_000,
       refetchOnWindowFocus: true,
     },
   });
   const [, setLocation] = useLocation();
 
+  // Only redirect when we have a confirmed unauthenticated state (not mid-fetch).
+  // Checking isFetching prevents the redirect during background re-validation.
   useEffect(() => {
-    if (!isLoading && !user && window.location.pathname !== "/login") {
+    if (!isLoading && !isFetching && !user && window.location.pathname !== "/login") {
       setLocation("/login");
     }
-  }, [user, isLoading, setLocation]);
+  }, [user, isLoading, isFetching, setLocation]);
 
+  // Cross-tab sync: when another tab logs in or out, re-validate auth here.
   useEffect(() => {
-    const invalidateMe = () => {
-      queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-    };
-
-    // Cross-tab: when another tab logs in or out, refresh auth state here
     let channel: BroadcastChannel | null = null;
     try {
       channel = new BroadcastChannel(AUTH_CHANNEL);
       channel.addEventListener("message", (e: MessageEvent) => {
         if (e.data?.type === "AUTH_CHANGED") {
-          invalidateMe();
+          queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
         }
       });
     } catch {
       // BroadcastChannel not available
     }
 
-    // Same-tab: when this tab regains focus, re-validate the session
-    const handleVisibilityChange = () => {
-      if (document.visibilityState === "visible") {
-        invalidateMe();
-      }
-    };
-    document.addEventListener("visibilitychange", handleVisibilityChange);
-
     return () => {
       channel?.close();
-      document.removeEventListener("visibilitychange", handleVisibilityChange);
     };
   }, [queryClient]);
 
