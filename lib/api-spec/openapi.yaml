@@ -1984,14 +1984,14 @@ components:
     # GRN
     GrnItem:
       type: object
-      required: [productId, quantity, unit, unitCost, totalCost]
+      required: [quantity, unit, unitCost, totalCost]
       properties:
         id:
           type: integer
-        productId:
-          type: integer
-        productName:
+        itemName:
           type: ["string", "null"]
+        productId:
+          type: ["integer", "null"]
         quantity:
           type: number
         unit:

@@ -99,7 +99,7 @@ function PrintableGrn({ grn }: { grn: any }) {
         <thead>
           <tr className="bg-gray-900 text-white">
             <th className="text-left p-2 font-semibold">#</th>
-            <th className="text-left p-2 font-semibold">Product</th>
+            <th className="text-left p-2 font-semibold">Item</th>
             <th className="text-right p-2 font-semibold">Qty</th>
             <th className="text-left p-2 font-semibold">Unit</th>
             <th className="text-right p-2 font-semibold">Unit Cost (ETB)</th>
@@ -111,7 +111,7 @@ function PrintableGrn({ grn }: { grn: any }) {
           {items.map((item, i) => (
             <tr key={i} className={i % 2 === 0 ? "bg-white" : "bg-gray-50"}>
               <td className="p-2 border-b border-gray-100">{i + 1}</td>
-              <td className="p-2 border-b border-gray-100">{item.productName || `Product #${item.productId}`}</td>
+              <td className="p-2 border-b border-gray-100">{item.itemName || "—"}</td>
               <td className="p-2 border-b border-gray-100 text-right">{parseFloat(item.quantity).toLocaleString()}</td>
               <td className="p-2 border-b border-gray-100">{item.unit}</td>
               <td className="p-2 border-b border-gray-100 text-right">{parseFloat(item.unitCost).toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
@@ -458,7 +458,7 @@ export default function GrnDetail({ id }: { id: string }) {
             <TableHeader>
               <TableRow className="bg-muted/50">
                 <TableHead>#</TableHead>
-                <TableHead>Product</TableHead>
+                <TableHead>Item</TableHead>
                 <TableHead className="text-right">Qty</TableHead>
                 <TableHead>Unit</TableHead>
                 <TableHead className="text-right">Unit Cost (ETB)</TableHead>
@@ -471,7 +471,7 @@ export default function GrnDetail({ id }: { id: string }) {
               {((grn as any).items ?? []).map((item: any, i: number) => (
                 <TableRow key={i}>
                   <TableCell className="text-muted-foreground">{i + 1}</TableCell>
-                  <TableCell className="font-medium">{item.productName || `Product #${item.productId}`}</TableCell>
+                  <TableCell className="font-medium">{item.itemName || "—"}</TableCell>
                   <TableCell className="text-right">{parseFloat(item.quantity).toLocaleString()}</TableCell>
                   <TableCell>{item.unit}</TableCell>
                   <TableCell className="text-right">

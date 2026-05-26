@@ -70,7 +70,10 @@ router.post("/grns", requireAuth, async (req, res): Promise<void> => {
 
   for (const item of items) {
     await db.insert(grnItemsTable).values({
-      grnId: grn.id, productId: item.productId, quantity: item.quantity.toString(),
+      grnId: grn.id,
+      itemName: item.itemName ?? null,
+      productId: item.productId ?? null,
+      quantity: item.quantity.toString(),
       unit: item.unit, unitCost: item.unitCost.toString(), totalCost: item.totalCost.toString(),
       batchNumber: item.batchNumber ?? null, expiryDate: item.expiryDate ?? null,
     });
@@ -147,9 +150,10 @@ router.post("/grns/:id/approve", requireAuth, requirePermission("can_approve_req
   const [grn] = await db.update(grnsTable).set({ status: "approved", approvedById: req.session.userId, approvedAt: new Date() }).where(eq(grnsTable.id, id)).returning();
   if (!grn) { res.status(404).json({ error: "Not found" }); return; }
 
-  // Update inventory
+  // Update inventory — only for items that are linked to a product
   const items = await db.select().from(grnItemsTable).where(eq(grnItemsTable.grnId, id));
   for (const item of items) {
+    if (!item.productId) continue;
     const [existing] = await db.select().from(inventoryTable).where(and(eq(inventoryTable.productId, item.productId), eq(inventoryTable.storeId, grn.storeId)));
     if (existing) {
       const newQty = (parseFloat(existing.quantity as string) + parseFloat(item.quantity as string)).toString();

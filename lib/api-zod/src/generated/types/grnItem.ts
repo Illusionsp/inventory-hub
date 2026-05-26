@@ -8,9 +8,10 @@
 
 export interface GrnItem {
   id?: number;
-  productId: number;
   /** @nullable */
-  productName?: string | null;
+  itemName?: string | null;
+  /** @nullable */
+  productId?: number | null;
   quantity: number;
   unit: string;
   unitCost: number;

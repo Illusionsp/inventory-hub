@@ -29,7 +29,8 @@ export const grnsTable = pgTable("grns", {
 export const grnItemsTable = pgTable("grn_items", {
   id: serial("id").primaryKey(),
   grnId: integer("grn_id").notNull(),
-  productId: integer("product_id").notNull(),
+  itemName: text("item_name"),
+  productId: integer("product_id"),
   quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(),
   unit: text("unit").notNull(),
   unitCost: numeric("unit_cost", { precision: 14, scale: 4 }).notNull(),

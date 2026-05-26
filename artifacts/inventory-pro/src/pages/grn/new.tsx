@@ -6,7 +6,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   useListSuppliers,
   useListStores,
-  useListProducts,
   useCreateGrn,
   useSubmitGrn,
 } from "@workspace/api-client-react";
@@ -35,7 +34,7 @@ import { Separator } from "@/components/ui/separator";
 import { Trash2, Plus, Save, Send } from "lucide-react";
 
 const grnItemSchema = z.object({
-  productId: z.coerce.number().min(1, "Product is required"),
+  itemName: z.string().min(1, "Item name is required"),
   quantity: z.coerce.number().min(0.01, "Quantity must be > 0"),
   unit: z.string().min(1, "Unit is required"),
   unitCost: z.coerce.number().min(0, "Cost must be >= 0"),
@@ -64,15 +63,13 @@ export default function CreateGrn() {
   
   const { data: suppliers } = useListSuppliers({ limit: 100 } as any);
   const { data: stores } = useListStores();
-  const { data: productsData } = useListProducts({ limit: 500 } as any);
-  const products = productsData?.data || [];
 
   const form = useForm<FormValues>({
     resolver: zodResolver(grnSchema),
     defaultValues: {
       receivedDate: new Date().toISOString().split("T")[0],
       vatApplicable: false,
-      items: [{ productId: 0, quantity: 1, unit: "kg", unitCost: 0, totalCost: 0 }],
+      items: [{ itemName: "", quantity: 1, unit: "kg", unitCost: 0, totalCost: 0 }],
     },
   });
 
@@ -227,7 +224,7 @@ export default function CreateGrn() {
           <Card>
             <CardHeader className="flex flex-row items-center justify-between py-4">
               <CardTitle>Line Items</CardTitle>
-              <Button type="button" variant="outline" size="sm" onClick={() => append({ productId: 0, quantity: 1, unit: "kg", unitCost: 0, totalCost: 0 })}>
+              <Button type="button" variant="outline" size="sm" onClick={() => append({ itemName: "", quantity: 1, unit: "kg", unitCost: 0, totalCost: 0 })}>
                 <Plus className="h-4 w-4 mr-2" /> Add Item
               </Button>
             </CardHeader>
@@ -239,28 +236,13 @@ export default function CreateGrn() {
                       <div className="col-span-12 md:col-span-4">
                         <FormField
                           control={form.control}
-                          name={`items.${index}.productId`}
+                          name={`items.${index}.itemName`}
                           render={({ field }) => (
                             <FormItem>
-                              <FormLabel className="text-xs">Product</FormLabel>
-                              <Select onValueChange={(val) => {
-                                field.onChange(Number(val));
-                                const p = products.find(x => x.id === Number(val));
-                                if (p) {
-                                  form.setValue(`items.${index}.unit`, p.unit);
-                                  form.setValue(`items.${index}.unitCost`, p.unitCost || 0);
-                                  form.setValue(`items.${index}.totalCost`, (p.unitCost || 0) * form.getValues(`items.${index}.quantity`));
-                                }
-                              }} value={field.value?.toString() || ""}>
-                                <FormControl>
-                                  <SelectTrigger><SelectValue placeholder="Select product" /></SelectTrigger>
-                                </FormControl>
-                                <SelectContent>
-                                  {products.map((p) => (
-                                    <SelectItem key={p.id} value={p.id.toString()}>{p.name} ({p.sku})</SelectItem>
-                                  ))}
-                                </SelectContent>
-                              </Select>
+                              <FormLabel className="text-xs">Item Name</FormLabel>
+                              <FormControl>
+                                <Input placeholder="e.g. Raw Sugar, Palm Oil…" {...field} />
+                              </FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
@@ -292,7 +274,7 @@ export default function CreateGrn() {
                           render={({ field }) => (
                             <FormItem>
                               <FormLabel className="text-xs">Unit</FormLabel>
-                              <FormControl><Input {...field} readOnly className="bg-muted" /></FormControl>
+                              <FormControl><Input placeholder="kg / pcs / L…" {...field} /></FormControl>
                               <FormMessage />
                             </FormItem>
                           )}
