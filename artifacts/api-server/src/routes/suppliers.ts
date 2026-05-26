@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { eq, ilike, and, SQL } from "drizzle-orm";
-import { db, suppliersTable } from "@workspace/db";
+import { db, suppliersTable, grnsTable } from "@workspace/db";
 import { requireAuth } from "../lib/auth";
 
 const router = Router();
@@ -40,6 +40,25 @@ router.patch("/suppliers/:id", requireAuth, async (req, res): Promise<void> => {
   const [s] = await db.update(suppliersTable).set(updates).where(eq(suppliersTable.id, id)).returning();
   if (!s) { res.status(404).json({ error: "Not found" }); return; }
   res.json(s);
+});
+
+router.delete("/suppliers/:id", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const [s] = await db.select({ id: suppliersTable.id }).from(suppliersTable).where(eq(suppliersTable.id, id));
+  if (!s) { res.status(404).json({ error: "Not found" }); return; }
+
+  const grnCount = await db.$count(grnTable, eq(grnTable.supplierId, id));
+  if (grnCount > 0) {
+    res.status(409).json({
+      error: `Cannot delete: this supplier has ${grnCount} GRN record(s). Deactivate them instead to preserve history.`,
+    });
+    return;
+  }
+
+  await db.delete(suppliersTable).where(eq(suppliersTable.id, id));
+  res.status(204).end();
 });
 
 export default router;

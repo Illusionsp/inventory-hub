@@ -484,6 +484,20 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Supplier"
+    delete:
+      operationId: deleteSupplier
+      tags: [suppliers]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "409":
+          description: Supplier has GRN records
 
   # CUSTOMERS
   /customers:

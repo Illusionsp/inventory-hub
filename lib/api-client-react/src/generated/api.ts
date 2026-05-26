@@ -1861,6 +1861,70 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
       return useMutation(getUpdateSupplierMutationOptions(options));
     }
 
+export const getDeleteSupplierUrl = (id: number,) => {
+
+
+
+
+  return `/api/suppliers/${id}`
+}
+
+export const deleteSupplier = async (id: number, options?: RequestInit): Promise<void> => {
+
+  return customFetch<void>(getDeleteSupplierUrl(id),
+  {
+    ...options,
+    method: 'DELETE'
+
+
+  }
+);}
+
+
+
+
+export const getDeleteSupplierMutationOptions = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSupplier>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof deleteSupplier>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['deleteSupplier'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof deleteSupplier>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  deleteSupplier(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DeleteSupplierMutationResult = NonNullable<Awaited<ReturnType<typeof deleteSupplier>>>
+
+    export type DeleteSupplierMutationError = ErrorType<void>
+
+    export const useDeleteSupplier = <TError = ErrorType<void>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof deleteSupplier>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof deleteSupplier>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getDeleteSupplierMutationOptions(options));
+    }
+
 export const getListCustomersUrl = (params?: ListCustomersParams,) => {
   const normalizedParams = new URLSearchParams();
 

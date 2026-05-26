@@ -379,6 +379,11 @@ export const UpdateSupplierResponse = zod.object({
 })
 
 
+export const DeleteSupplierParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
 export const ListCustomersQueryParams = zod.object({
   "search": zod.coerce.string().optional(),
   "type": zod.enum(['company', 'walk_in']).optional(),
