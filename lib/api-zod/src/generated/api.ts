@@ -204,6 +204,11 @@ export const CreateCategoryBody = zod.object({
 })
 
 
+export const DeleteCategoryParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+
 export const ListProductsQueryParams = zod.object({
   "categoryId": zod.coerce.number().optional(),
   "type": zod.enum(['raw_material', 'semi_finished', 'finished', 'packaging']).optional(),

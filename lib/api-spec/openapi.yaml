@@ -288,6 +288,22 @@ paths:
               schema:
                 $ref: "#/components/schemas/Category"
 
+  /categories/{id}:
+    delete:
+      operationId: deleteCategory
+      tags: [categories]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "204":
+          description: Deleted
+        "409":
+          description: Category has products
+
   # PRODUCTS
   /products:
     get:

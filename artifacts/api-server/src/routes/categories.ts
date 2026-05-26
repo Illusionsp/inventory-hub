@@ -1,5 +1,6 @@
 import { Router } from "express";
-import { db, categoriesTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { db, categoriesTable, productsTable } from "@workspace/db";
 import { requireAuth } from "../lib/auth";
 
 const router = Router();
@@ -14,6 +15,21 @@ router.post("/categories", requireAuth, async (req, res): Promise<void> => {
   if (!name) { res.status(400).json({ error: "Name required" }); return; }
   const [cat] = await db.insert(categoriesTable).values({ name, description: description ?? null }).returning();
   res.status(201).json(cat);
+});
+
+router.delete("/categories/:id", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(req.params.id, 10);
+  if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
+
+  const products = await db.select({ id: productsTable.id }).from(productsTable)
+    .where(eq(productsTable.categoryId, id)).limit(1);
+  if (products.length > 0) {
+    res.status(409).json({ error: "Cannot delete: category has products assigned to it. Reassign them first." });
+    return;
+  }
+
+  await db.delete(categoriesTable).where(eq(categoriesTable.id, id));
+  res.status(204).end();
 });
 
 export default router;
