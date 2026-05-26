@@ -49,7 +49,7 @@ router.delete("/suppliers/:id", requireAuth, async (req, res): Promise<void> => 
   const [s] = await db.select({ id: suppliersTable.id }).from(suppliersTable).where(eq(suppliersTable.id, id));
   if (!s) { res.status(404).json({ error: "Not found" }); return; }
 
-  const grnCount = await db.$count(grnTable, eq(grnTable.supplierId, id));
+  const grnCount = await db.$count(grnsTable, eq(grnsTable.supplierId, id));
   if (grnCount > 0) {
     res.status(409).json({
       error: `Cannot delete: this supplier has ${grnCount} GRN record(s). Deactivate them instead to preserve history.`,

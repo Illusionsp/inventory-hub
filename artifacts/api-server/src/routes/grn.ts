@@ -48,18 +48,20 @@ router.get("/grns", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.post("/grns", requireAuth, async (req, res): Promise<void> => {
-  const { supplierId, storeId, invoiceNumber, poNumber, deliveryNoteNumber, receivedDate, notes, items } = req.body;
+  const { supplierId, storeId, invoiceNumber, poNumber, deliveryNoteNumber, receivedDate, vatApplicable, notes, items } = req.body;
   if (!supplierId || !storeId || !receivedDate || !items?.length) {
     res.status(400).json({ error: "Missing required fields" });
     return;
   }
 
   const totalCost = items.reduce((s: number, i: { totalCost: number }) => s + Number(i.totalCost), 0);
+  const vatAmount = vatApplicable ? totalCost * 0.15 : 0;
   const grnNumber = await nextGrnNumber();
 
   const [grn] = await db.insert(grnsTable).values({
     grnNumber, supplierId, storeId, invoiceNumber: invoiceNumber ?? null, poNumber: poNumber ?? null,
     deliveryNoteNumber: deliveryNoteNumber ?? null, receivedDate, totalCost: totalCost.toString(),
+    vatApplicable: vatApplicable ?? false, vatAmount: vatAmount.toString(),
     notes: notes ?? null, createdById: req.session.userId,
   }).returning();
 
@@ -84,7 +86,8 @@ router.get("/grns/:id", requireAuth, async (req, res): Promise<void> => {
       storeId: grnsTable.storeId, storeName: storesTable.name,
       invoiceNumber: grnsTable.invoiceNumber, poNumber: grnsTable.poNumber,
       deliveryNoteNumber: grnsTable.deliveryNoteNumber, receivedDate: grnsTable.receivedDate,
-      totalCost: grnsTable.totalCost, notes: grnsTable.notes,
+      totalCost: grnsTable.totalCost, vatApplicable: grnsTable.vatApplicable,
+      vatAmount: grnsTable.vatAmount, notes: grnsTable.notes,
       createdById: grnsTable.createdById,
       approvedById: grnsTable.approvedById, approvedAt: grnsTable.approvedAt,
       rejectionReason: grnsTable.rejectionReason, createdAt: grnsTable.createdAt,
@@ -116,8 +119,12 @@ router.get("/grns/:id", requireAuth, async (req, res): Promise<void> => {
 router.patch("/grns/:id", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const updates: Record<string, unknown> = {};
-  for (const f of ["invoiceNumber", "poNumber", "deliveryNoteNumber", "receivedDate", "notes"])
+  for (const f of ["invoiceNumber", "poNumber", "deliveryNoteNumber", "receivedDate", "vatApplicable", "notes"])
     if (req.body[f] !== undefined) updates[f] = req.body[f];
+  if (req.body.vatApplicable !== undefined) {
+    const [cur] = await db.select({ totalCost: grnsTable.totalCost }).from(grnsTable).where(eq(grnsTable.id, id));
+    if (cur) updates.vatAmount = (req.body.vatApplicable ? parseFloat(String(cur.totalCost)) * 0.15 : 0).toString();
+  }
   const [grn] = await db.update(grnsTable).set(updates).where(eq(grnsTable.id, id)).returning();
   if (!grn) { res.status(404).json({ error: "Not found" }); return; }
   res.json({ ...grn, supplierName: null, storeName: null, approverName: null, items: [] });

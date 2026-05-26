@@ -12,6 +12,7 @@ import {
 } from "@workspace/api-client-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   Form,
   FormControl,
@@ -30,6 +31,7 @@ import {
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Separator } from "@/components/ui/separator";
 import { Trash2, Plus, Save, Send } from "lucide-react";
 
 const grnItemSchema = z.object({
@@ -47,6 +49,7 @@ const grnSchema = z.object({
   invoiceNumber: z.string().optional(),
   poNumber: z.string().optional(),
   deliveryNoteNumber: z.string().optional(),
+  vatApplicable: z.boolean().default(false),
   notes: z.string().optional(),
   items: z.array(grnItemSchema).min(1, "At least one item is required"),
 });
@@ -66,6 +69,7 @@ export default function CreateGrn() {
     resolver: zodResolver(grnSchema),
     defaultValues: {
       receivedDate: new Date().toISOString().split("T")[0],
+      vatApplicable: false,
       items: [{ productId: 0, quantity: 1, unit: "kg", unitCost: 0, totalCost: 0 }],
     },
   });
@@ -100,7 +104,10 @@ export default function CreateGrn() {
   };
 
   const watchItems = form.watch("items");
-  const totalAmount = watchItems.reduce((sum, item) => sum + (item.quantity * item.unitCost || 0), 0);
+  const vatApplicable = form.watch("vatApplicable");
+  const subtotal = watchItems.reduce((sum, item) => sum + (item.quantity * item.unitCost || 0), 0);
+  const vatAmount = vatApplicable ? subtotal * 0.15 : 0;
+  const grandTotal = subtotal + vatAmount;
 
   return (
     <div className="space-y-6 max-w-5xl mx-auto">
@@ -330,10 +337,42 @@ export default function CreateGrn() {
                   </div>
                 ))}
 
-                <div className="flex justify-end pt-4 border-t">
-                  <div className="text-right">
-                    <span className="text-sm text-muted-foreground mr-4">Total Amount:</span>
-                    <span className="text-2xl font-bold font-mono">${totalAmount.toFixed(2)}</span>
+                <div className="pt-4 border-t space-y-3">
+                  <div className="flex items-center gap-3 justify-end">
+                    <FormField
+                      control={form.control}
+                      name="vatApplicable"
+                      render={({ field }) => (
+                        <FormItem className="flex items-center gap-2 space-y-0">
+                          <FormControl>
+                            <Checkbox
+                              checked={field.value}
+                              onCheckedChange={field.onChange}
+                            />
+                          </FormControl>
+                          <FormLabel className="text-sm font-medium cursor-pointer">Apply VAT (15%)</FormLabel>
+                        </FormItem>
+                      )}
+                    />
+                  </div>
+                  <div className="flex justify-end">
+                    <div className="w-64 space-y-2 text-sm">
+                      <div className="flex justify-between">
+                        <span className="text-muted-foreground">Subtotal:</span>
+                        <span className="font-mono">ETB {subtotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                      {vatApplicable && (
+                        <div className="flex justify-between text-amber-600">
+                          <span>VAT (15%):</span>
+                          <span className="font-mono">ETB {vatAmount.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                        </div>
+                      )}
+                      <Separator />
+                      <div className="flex justify-between text-base font-bold">
+                        <span>Grand Total:</span>
+                        <span className="font-mono">ETB {grandTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                      </div>
+                    </div>
                   </div>
                 </div>
               </div>

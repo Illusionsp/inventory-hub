@@ -26,6 +26,8 @@ export interface Grn {
   deliveryNoteNumber?: string | null;
   receivedDate: string;
   totalCost: number;
+  vatApplicable?: boolean;
+  vatAmount?: number;
   /** @nullable */
   notes?: string | null;
   /** @nullable */

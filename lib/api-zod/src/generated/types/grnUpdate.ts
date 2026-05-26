@@ -15,6 +15,7 @@ export interface GrnUpdate {
   /** @nullable */
   deliveryNoteNumber?: string | null;
   receivedDate?: string;
+  vatApplicable?: boolean;
   /** @nullable */
   notes?: string | null;
   items?: GrnItem[];

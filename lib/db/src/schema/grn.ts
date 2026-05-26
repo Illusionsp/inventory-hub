@@ -1,4 +1,4 @@
-import { pgTable, serial, integer, text, numeric, timestamp } from "drizzle-orm/pg-core";
+import { pgTable, serial, integer, text, numeric, timestamp, boolean } from "drizzle-orm/pg-core";
 import { createInsertSchema } from "drizzle-zod";
 import { z } from "zod/v4";
 
@@ -13,6 +13,8 @@ export const grnsTable = pgTable("grns", {
   deliveryNoteNumber: text("delivery_note_number"),
   receivedDate: text("received_date").notNull(),
   totalCost: numeric("total_cost", { precision: 14, scale: 2 }).notNull().default("0"),
+  vatApplicable: boolean("vat_applicable").notNull().default(false),
+  vatAmount: numeric("vat_amount", { precision: 14, scale: 2 }).notNull().default("0"),
   notes: text("notes"),
   createdById: integer("created_by_id"),
   approvedById: integer("approved_by_id"),

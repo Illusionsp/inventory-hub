@@ -32,6 +32,8 @@ const STATUS_LABELS: Record<string, string> = {
 function PrintableGrn({ grn }: { grn: any }) {
   const items: any[] = grn.items ?? [];
   const total = parseFloat(String(grn.totalCost || 0));
+  const vatAmt = parseFloat(String(grn.vatAmount || 0));
+  const grandTotal = total + vatAmt;
 
   return (
     <div className="bg-white text-black p-8 max-w-[800px] mx-auto font-sans text-sm" id="grn-print-area">
@@ -130,9 +132,23 @@ function PrintableGrn({ grn }: { grn: any }) {
           ))}
         </tbody>
         <tfoot>
+          {grn.vatApplicable && vatAmt > 0 && (
+            <>
+              <tr className="bg-gray-100 text-gray-700">
+                <td colSpan={5} className="p-2 text-right font-medium">Subtotal</td>
+                <td className="p-2 text-right">ETB {total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+                <td className="p-2"></td>
+              </tr>
+              <tr className="bg-amber-50 text-amber-800">
+                <td colSpan={5} className="p-2 text-right font-medium">VAT (15%)</td>
+                <td className="p-2 text-right">ETB {vatAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+                <td className="p-2"></td>
+              </tr>
+            </>
+          )}
           <tr className="bg-gray-900 text-white font-bold">
-            <td colSpan={5} className="p-2 text-right">TOTAL</td>
-            <td className="p-2 text-right">ETB {total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
+            <td colSpan={5} className="p-2 text-right">GRAND TOTAL</td>
+            <td className="p-2 text-right">ETB {grandTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}</td>
             <td className="p-2"></td>
           </tr>
         </tfoot>
@@ -237,6 +253,8 @@ export default function GrnDetail({ id }: { id: string }) {
   if (!grn) return <div className="p-8 text-muted-foreground">GRN not found.</div>;
 
   const total = parseFloat(String(grn.totalCost || 0));
+  const vatAmt = parseFloat(String((grn as any).vatAmount || 0));
+  const grandTotal = total + vatAmt;
 
   return (
     <div className="space-y-6">
@@ -315,7 +333,9 @@ export default function GrnDetail({ id }: { id: string }) {
           { label: "Serial No.", value: grn.grnNumber },
           { label: "Received Date", value: grn.receivedDate },
           { label: "Invoice No.", value: grn.invoiceNumber ?? "—" },
-          { label: "Total Cost", value: `ETB ${total.toLocaleString("en-US", { minimumFractionDigits: 2 })}` },
+          { label: "Subtotal", value: `ETB ${total.toLocaleString("en-US", { minimumFractionDigits: 2 })}` },
+          ...((grn as any).vatApplicable ? [{ label: "VAT (15%)", value: `ETB ${vatAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })}` }] : []),
+          { label: "Grand Total", value: `ETB ${grandTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}` },
         ].map(({ label, value }) => (
           <Card key={label}>
             <CardContent className="pt-4">
@@ -363,9 +383,23 @@ export default function GrnDetail({ id }: { id: string }) {
             </TableBody>
           </Table>
           <div className="flex justify-end p-4 border-t bg-muted/30">
-            <div className="flex gap-8 text-sm font-bold">
-              <span>Total</span>
-              <span>ETB {total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+            <div className="space-y-1.5 text-sm min-w-[220px]">
+              {(grn as any).vatApplicable && vatAmt > 0 && (
+                <>
+                  <div className="flex justify-between">
+                    <span className="text-muted-foreground">Subtotal</span>
+                    <span>ETB {total.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                  <div className="flex justify-between text-amber-600">
+                    <span>VAT (15%)</span>
+                    <span>ETB {vatAmt.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+                  </div>
+                </>
+              )}
+              <div className="flex justify-between font-bold border-t pt-1.5">
+                <span>Grand Total</span>
+                <span>ETB {grandTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}</span>
+              </div>
             </div>
           </div>
         </CardContent>

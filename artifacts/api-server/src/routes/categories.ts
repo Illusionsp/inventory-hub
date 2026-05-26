@@ -18,7 +18,7 @@ router.post("/categories", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.delete("/categories/:id", requireAuth, async (req, res): Promise<void> => {
-  const id = parseInt(req.params.id, 10);
+  const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   if (isNaN(id)) { res.status(400).json({ error: "Invalid id" }); return; }
 
   const products = await db.select({ id: productsTable.id }).from(productsTable)

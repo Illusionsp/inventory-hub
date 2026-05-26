@@ -410,6 +410,8 @@ export interface Grn {
   deliveryNoteNumber?: string | null;
   receivedDate: string;
   totalCost: number;
+  vatApplicable?: boolean;
+  vatAmount?: number;
   /** @nullable */
   notes?: string | null;
   /** @nullable */
@@ -441,6 +443,7 @@ export interface GrnInput {
   /** @nullable */
   deliveryNoteNumber?: string | null;
   receivedDate: string;
+  vatApplicable?: boolean;
   /** @nullable */
   notes?: string | null;
   items: GrnItem[];
@@ -454,6 +457,7 @@ export interface GrnUpdate {
   /** @nullable */
   deliveryNoteNumber?: string | null;
   receivedDate?: string;
+  vatApplicable?: boolean;
   /** @nullable */
   notes?: string | null;
   items?: GrnItem[];

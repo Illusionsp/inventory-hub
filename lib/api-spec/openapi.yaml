@@ -1877,6 +1877,10 @@ components:
           type: string
         totalCost:
           type: number
+        vatApplicable:
+          type: boolean
+        vatAmount:
+          type: number
         notes:
           type: ["string", "null"]
         approvedById:
@@ -1925,6 +1929,8 @@ components:
           type: ["string", "null"]
         receivedDate:
           type: string
+        vatApplicable:
+          type: boolean
         notes:
           type: ["string", "null"]
         items:
@@ -1943,6 +1949,8 @@ components:
           type: ["string", "null"]
         receivedDate:
           type: string
+        vatApplicable:
+          type: boolean
         notes:
           type: ["string", "null"]
         items:
