@@ -236,10 +236,121 @@ export default function GrnDetail({ id }: { id: string }) {
   const handlePrint = () => {
     const printArea = document.getElementById("grn-print-area");
     if (!printArea) return;
-    const html = `<!DOCTYPE html><html><head><title>${grn?.grnNumber || "GRN"}</title><style>
-      body { font-family: Arial, sans-serif; font-size: 12px; color: #111; margin: 0; padding: 0; }
-      * { box-sizing: border-box; }
-    </style></head><body>${printArea.outerHTML}</body></html>`;
+    const html = `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>${grn?.grnNumber || "GRN"}</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 12px; color: #111; background: #fff; }
+
+  /* layout */
+  .p-8 { padding: 32px; }
+  .max-w-\\[800px\\] { max-width: 800px; }
+  .mx-auto { margin-left: auto; margin-right: auto; }
+  .flex { display: flex; }
+  .justify-between { justify-content: space-between; }
+  .items-start { align-items: flex-start; }
+  .text-right { text-align: right; }
+  .text-center { text-align: center; }
+  .mb-6 { margin-bottom: 24px; }
+  .mb-4 { margin-bottom: 16px; }
+  .mb-2 { margin-bottom: 8px; }
+  .mb-1 { margin-bottom: 4px; }
+  .mt-8 { margin-top: 32px; }
+  .mt-6 { margin-top: 24px; }
+  .mt-1 { margin-top: 4px; }
+  .mt-0\\.5 { margin-top: 2px; }
+  .p-2 { padding: 8px; }
+  .p-3 { padding: 12px; }
+
+  /* grid */
+  .grid { display: grid; }
+  .grid-cols-2 { grid-template-columns: repeat(2, 1fr); }
+  .grid-cols-3 { grid-template-columns: repeat(3, 1fr); }
+  .gap-6 { gap: 24px; }
+  .gap-4 { gap: 16px; }
+  .gap-x-3 { column-gap: 12px; }
+  .gap-y-1\\.5 { row-gap: 6px; }
+  .space-y-4 > * + * { margin-top: 16px; }
+  .space-y-2 > * + * { margin-top: 8px; }
+
+  /* typography */
+  .text-2xl { font-size: 20px; line-height: 1.3; }
+  .text-xl { font-size: 17px; }
+  .text-xs { font-size: 11px; }
+  .text-sm { font-size: 12px; }
+  .text-\\[10px\\] { font-size: 10px; }
+  .font-bold { font-weight: 700; }
+  .font-semibold { font-weight: 600; }
+  .font-medium { font-weight: 500; }
+  .uppercase { text-transform: uppercase; }
+  .tracking-wider { letter-spacing: 0.05em; }
+
+  /* colors */
+  .text-black { color: #000; }
+  .text-gray-900 { color: #111827; }
+  .text-gray-800 { color: #1f2937; }
+  .text-gray-700 { color: #374151; }
+  .text-gray-500 { color: #6b7280; }
+  .text-gray-400 { color: #9ca3af; }
+  .text-white { color: #fff; }
+  .text-green-800 { color: #166534; }
+  .text-blue-800 { color: #1e40af; }
+  .text-red-800 { color: #991b1b; }
+  .text-red-700 { color: #b91c1c; }
+  .text-red-400 { color: #f87171; }
+  .text-amber-800 { color: #92400e; }
+  .bg-white { background: #fff; }
+  .bg-gray-50 { background: #f9fafb; }
+  .bg-gray-100 { background: #f3f4f6; }
+  .bg-gray-900 { background: #111827; }
+  .bg-green-100 { background: #dcfce7; }
+  .bg-blue-100 { background: #dbeafe; }
+  .bg-red-100 { background: #fee2e2; }
+  .bg-red-50 { background: #fef2f2; }
+  .bg-amber-50 { background: #fffbeb; }
+
+  /* borders */
+  .border { border: 1px solid; }
+  .border-b { border-bottom: 1px solid; }
+  .border-b-2 { border-bottom: 2px solid; }
+  .border-t { border-top: 1px solid; }
+  .border-gray-100 { border-color: #f3f4f6; }
+  .border-gray-200 { border-color: #e5e7eb; }
+  .border-gray-300 { border-color: #d1d5db; }
+  .border-red-200 { border-color: #fecaca; }
+  .rounded { border-radius: 6px; }
+  .pt-6 { padding-top: 24px; }
+
+  /* badge */
+  .inline-block { display: inline-block; }
+  .px-2 { padding-left: 8px; padding-right: 8px; }
+  .py-0\\.5 { padding-top: 2px; padding-bottom: 2px; }
+
+  /* table */
+  table { width: 100%; border-collapse: collapse; }
+  th, td { vertical-align: middle; }
+  .w-full { width: 100%; }
+  .border-collapse { border-collapse: collapse; }
+
+  /* signature-specific */
+  .h-12 { height: 48px; }
+
+  /* signature block explicit */
+  #grn-print-area > div:last-of-type .grid.grid-cols-3 > div {
+    text-align: center;
+  }
+
+  @media print {
+    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    @page { margin: 1.5cm; size: A4; }
+  }
+</style>
+</head>
+<body>${printArea.outerHTML}</body>
+</html>`;
     const win = window.open("", "_blank");
     if (win) {
       win.document.write(html);
