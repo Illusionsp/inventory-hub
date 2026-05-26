@@ -19,7 +19,13 @@ import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
 import {
   Dialog,
   DialogContent,
@@ -30,7 +36,6 @@ import {
 } from "@/components/ui/dialog";
 import {
   AlertDialog,
-  AlertDialogAction,
   AlertDialogCancel,
   AlertDialogContent,
   AlertDialogDescription,
@@ -74,9 +79,12 @@ export default function CustomersList() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: customersData, isLoading } = useListCustomers({
-    search: search || undefined,
-  });
+  const params = React.useMemo(
+    () => ({ search: search || undefined }),
+    [search]
+  );
+
+  const { data: customersData, isLoading } = useListCustomers(params);
 
   const createCustomer = useCreateCustomer();
   const updateCustomer = useUpdateCustomer();
@@ -84,11 +92,16 @@ export default function CustomersList() {
 
   const formatETB = (val: number | null | undefined) => {
     if (val == null) return "ETB 0.00";
-    return `ETB ${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
+    return `ETB ${val.toLocaleString("en-US", {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2,
+    })}`;
   };
 
-  const invalidate = () =>
+  const invalidate = () => {
     queryClient.invalidateQueries({ queryKey: getListCustomersQueryKey() });
+    queryClient.invalidateQueries({ queryKey: getListCustomersQueryKey(params) });
+  };
 
   const openCreate = () => {
     setEditingId(null);
@@ -110,33 +123,39 @@ export default function CustomersList() {
     setFormOpen(true);
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
-    e.preventDefault();
-    if (!form.name || !form.type) {
-      toast({ title: "Name and type are required", variant: "destructive" });
+  const handleSave = () => {
+    if (!form.name.trim()) {
+      toast({ title: "Customer name is required", variant: "destructive" });
+      return;
+    }
+    if (!form.type) {
+      toast({ title: "Customer type is required", variant: "destructive" });
       return;
     }
 
-    const payload: any = {
-      name: form.name,
+    const payload = {
+      name: form.name.trim(),
       type: form.type,
-      email: form.email || undefined,
-      phone: form.phone || undefined,
-      address: form.address || undefined,
-      taxNumber: form.taxNumber || undefined,
-      isActive: form.isActive,
+      email: form.email.trim() || null,
+      phone: form.phone.trim() || null,
+      address: form.address.trim() || null,
+      taxNumber: form.taxNumber.trim() || null,
     };
 
-    if (editingId) {
+    if (editingId !== null) {
       updateCustomer.mutate(
-        { id: editingId, data: payload },
+        { id: editingId, data: { ...payload, isActive: form.isActive } },
         {
           onSuccess: () => {
             toast({ title: "Customer updated" });
             setFormOpen(false);
             invalidate();
           },
-          onError: () => toast({ title: "Failed to update", variant: "destructive" }),
+          onError: (err: any) => {
+            const msg =
+              err?.data?.error ?? err?.message ?? "Failed to update customer";
+            toast({ title: msg, variant: "destructive" });
+          },
         }
       );
     } else {
@@ -144,20 +163,26 @@ export default function CustomersList() {
         { data: payload },
         {
           onSuccess: () => {
-            toast({ title: "Customer added" });
+            toast({ title: "Customer added successfully" });
             setFormOpen(false);
+            setForm(emptyForm());
             invalidate();
           },
-          onError: () => toast({ title: "Failed to create", variant: "destructive" }),
+          onError: (err: any) => {
+            const msg =
+              err?.data?.error ?? err?.message ?? "Failed to create customer";
+            toast({ title: msg, variant: "destructive" });
+          },
         }
       );
     }
   };
 
-  const confirmDelete = () => {
-    if (!deleteId) return;
+  const handleDelete = () => {
+    if (deleteId === null) return;
+    const id = deleteId;
     deleteCustomer.mutate(
-      { id: deleteId },
+      { id },
       {
         onSuccess: () => {
           toast({ title: "Customer deleted" });
@@ -166,25 +191,32 @@ export default function CustomersList() {
         },
         onError: (err: any) => {
           const msg =
-            err?.response?.data?.error ||
-            err?.message ||
-            "Failed to delete customer";
-          toast({ title: msg, variant: "destructive", description: "Tip: deactivate the customer to hide them without losing records." });
+            err?.data?.error ?? err?.message ?? "Failed to delete customer";
+          toast({
+            title: msg,
+            variant: "destructive",
+            description:
+              "Tip: deactivate the customer instead to preserve sales history.",
+          });
           setDeleteId(null);
         },
       }
     );
   };
 
-  const set = (field: keyof CustomerFormState) => (val: string | boolean) =>
+  const setField = (field: keyof CustomerFormState) => (val: string | boolean) =>
     setForm((prev) => ({ ...prev, [field]: val }));
 
+  const isMutating = createCustomer.isPending || updateCustomer.isPending;
+
   return (
-    <div className="space-y-6 p-6">
+    <div className="space-y-6">
       <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
         <div>
           <h1 className="text-3xl font-bold tracking-tight">Customers</h1>
-          <p className="text-muted-foreground mt-1">Manage buyers and their credit balances.</p>
+          <p className="text-muted-foreground mt-1">
+            Manage buyers and their credit balances.
+          </p>
         </div>
         <Button onClick={openCreate}>
           <Plus className="mr-2 h-4 w-4" /> Add Customer
@@ -219,17 +251,32 @@ export default function CustomersList() {
             {isLoading ? (
               Array.from({ length: 5 }).map((_, i) => (
                 <TableRow key={i}>
-                  <TableCell><Skeleton className="h-4 w-[200px]" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-[80px]" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-[150px]" /></TableCell>
-                  <TableCell><Skeleton className="h-4 w-[80px] ml-auto" /></TableCell>
-                  <TableCell><Skeleton className="h-5 w-[60px]" /></TableCell>
-                  <TableCell><Skeleton className="h-8 w-[120px] ml-auto" /></TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-[200px]" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-[80px]" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-[150px]" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-4 w-[80px] ml-auto" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-5 w-[60px]" />
+                  </TableCell>
+                  <TableCell>
+                    <Skeleton className="h-8 w-[120px] ml-auto" />
+                  </TableCell>
                 </TableRow>
               ))
             ) : (customersData?.data ?? []).length === 0 ? (
               <TableRow>
-                <TableCell colSpan={6} className="h-24 text-center text-muted-foreground">
+                <TableCell
+                  colSpan={6}
+                  className="h-24 text-center text-muted-foreground"
+                >
                   No customers found.
                 </TableCell>
               </TableRow>
@@ -245,7 +292,10 @@ export default function CustomersList() {
                     )}
                   </TableCell>
                   <TableCell>
-                    <Badge variant="outline" className="capitalize font-normal text-xs bg-muted/50">
+                    <Badge
+                      variant="outline"
+                      className="capitalize font-normal text-xs bg-muted/50"
+                    >
                       {customer.type?.replace("_", " ")}
                     </Badge>
                   </TableCell>
@@ -253,7 +303,9 @@ export default function CustomersList() {
                     <div className="text-sm">
                       {customer.email && <div>{customer.email}</div>}
                       {customer.phone && (
-                        <div className="text-muted-foreground">{customer.phone}</div>
+                        <div className="text-muted-foreground">
+                          {customer.phone}
+                        </div>
                       )}
                       {!customer.email && !customer.phone && (
                         <span className="text-muted-foreground">—</span>
@@ -263,10 +315,14 @@ export default function CustomersList() {
                   <TableCell className="text-right font-mono">
                     <span
                       className={
-                        (customer.creditBalance || 0) > 0 ? "text-destructive font-semibold" : ""
+                        (customer.creditBalance || 0) > 0
+                          ? "text-destructive font-semibold"
+                          : ""
                       }
                     >
-                      {formatETB(parseFloat(String(customer.creditBalance || 0)))}
+                      {formatETB(
+                        parseFloat(String(customer.creditBalance || 0))
+                      )}
                     </span>
                   </TableCell>
                   <TableCell>
@@ -283,7 +339,11 @@ export default function CustomersList() {
                   </TableCell>
                   <TableCell>
                     <div className="flex items-center justify-end gap-1">
-                      <Button variant="ghost" size="icon" onClick={() => openEdit(customer)}>
+                      <Button
+                        variant="ghost"
+                        size="icon"
+                        onClick={() => openEdit(customer)}
+                      >
                         <Pencil className="h-4 w-4" />
                       </Button>
                       <Button variant="ghost" size="sm" asChild>
@@ -310,29 +370,36 @@ export default function CustomersList() {
         </Table>
       </div>
 
-      {/* Create / Edit Dialog */}
-      <Dialog open={formOpen} onOpenChange={setFormOpen}>
+      {/* Create / Edit Dialog — uses explicit onClick, not form submit */}
+      <Dialog open={formOpen} onOpenChange={(o) => { if (!isMutating) setFormOpen(o); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingId ? "Edit Customer" : "Add Customer"}</DialogTitle>
+            <DialogTitle>
+              {editingId !== null ? "Edit Customer" : "Add Customer"}
+            </DialogTitle>
             <DialogDescription>
-              {editingId ? "Update customer information." : "Fill in the details to add a new customer."}
+              {editingId !== null
+                ? "Update customer information."
+                : "Fill in the details to add a new customer."}
             </DialogDescription>
           </DialogHeader>
-          <form onSubmit={handleSubmit} className="space-y-4 pt-2">
+
+          <div className="space-y-4 pt-2">
             <div className="grid grid-cols-2 gap-4">
               <div className="col-span-2 space-y-1.5">
-                <Label>Name *</Label>
+                <Label htmlFor="c-name">Name *</Label>
                 <Input
+                  id="c-name"
                   value={form.name}
-                  onChange={(e) => set("name")(e.target.value)}
+                  onChange={(e) => setField("name")(e.target.value)}
                   placeholder="Customer name"
+                  onKeyDown={(e) => e.key === "Enter" && handleSave()}
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Type *</Label>
-                <Select value={form.type} onValueChange={set("type")}>
-                  <SelectTrigger>
+                <Label htmlFor="c-type">Type *</Label>
+                <Select value={form.type} onValueChange={setField("type")}>
+                  <SelectTrigger id="c-type">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent>
@@ -344,44 +411,48 @@ export default function CustomersList() {
                 </Select>
               </div>
               <div className="space-y-1.5">
-                <Label>Tax Number</Label>
+                <Label htmlFor="c-tax">Tax Number</Label>
                 <Input
+                  id="c-tax"
                   value={form.taxNumber}
-                  onChange={(e) => set("taxNumber")(e.target.value)}
+                  onChange={(e) => setField("taxNumber")(e.target.value)}
                   placeholder="TIN / VAT number"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Email</Label>
+                <Label htmlFor="c-email">Email</Label>
                 <Input
+                  id="c-email"
                   type="email"
                   value={form.email}
-                  onChange={(e) => set("email")(e.target.value)}
+                  onChange={(e) => setField("email")(e.target.value)}
                   placeholder="email@example.com"
                 />
               </div>
               <div className="space-y-1.5">
-                <Label>Phone</Label>
+                <Label htmlFor="c-phone">Phone</Label>
                 <Input
+                  id="c-phone"
                   value={form.phone}
-                  onChange={(e) => set("phone")(e.target.value)}
+                  onChange={(e) => setField("phone")(e.target.value)}
                   placeholder="+251 ..."
                 />
               </div>
               <div className="col-span-2 space-y-1.5">
-                <Label>Address</Label>
+                <Label htmlFor="c-addr">Address</Label>
                 <Input
+                  id="c-addr"
                   value={form.address}
-                  onChange={(e) => set("address")(e.target.value)}
+                  onChange={(e) => setField("address")(e.target.value)}
                   placeholder="Street, city, region"
                 />
               </div>
-              {editingId && (
+              {editingId !== null && (
                 <div className="space-y-1.5">
                   <Label>Status</Label>
                   <Select
                     value={form.isActive ? "active" : "inactive"}
-                    onValueChange={(v) => set("isActive")(v === "active")}
+                    onValueChange={(v) => setField("isActive")(v === "active")}
                   >
                     <SelectTrigger>
                       <SelectValue />
@@ -394,39 +465,57 @@ export default function CustomersList() {
                 </div>
               )}
             </div>
-            <DialogFooter>
-              <Button type="button" variant="outline" onClick={() => setFormOpen(false)}>
-                Cancel
-              </Button>
-              <Button
-                type="submit"
-                disabled={createCustomer.isPending || updateCustomer.isPending}
-              >
-                {editingId ? "Save Changes" : "Add Customer"}
-              </Button>
-            </DialogFooter>
-          </form>
+          </div>
+
+          <DialogFooter>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => setFormOpen(false)}
+              disabled={isMutating}
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              disabled={isMutating}
+              onClick={handleSave}
+            >
+              {isMutating
+                ? "Saving..."
+                : editingId !== null
+                ? "Save Changes"
+                : "Add Customer"}
+            </Button>
+          </DialogFooter>
         </DialogContent>
       </Dialog>
 
       {/* Delete Confirmation */}
-      <AlertDialog open={!!deleteId} onOpenChange={(open) => !open && setDeleteId(null)}>
+      <AlertDialog
+        open={deleteId !== null}
+        onOpenChange={(open) => { if (!open) setDeleteId(null); }}
+      >
         <AlertDialogContent>
           <AlertDialogHeader>
             <AlertDialogTitle>Delete Customer?</AlertDialogTitle>
             <AlertDialogDescription>
-              Are you sure you want to delete <strong>{deleteName}</strong>? This action cannot be
-              undone. Existing transaction records will not be affected.
+              Are you sure you want to delete <strong>{deleteName}</strong>?
+              This cannot be undone. If the customer has sales records, deletion
+              will be blocked — use Deactivate instead.
             </AlertDialogDescription>
           </AlertDialogHeader>
           <AlertDialogFooter>
-            <AlertDialogCancel>Cancel</AlertDialogCancel>
-            <AlertDialogAction
-              onClick={confirmDelete}
-              className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+            <AlertDialogCancel onClick={() => setDeleteId(null)}>
+              Cancel
+            </AlertDialogCancel>
+            <Button
+              variant="destructive"
+              disabled={deleteCustomer.isPending}
+              onClick={handleDelete}
             >
-              Delete
-            </AlertDialogAction>
+              {deleteCustomer.isPending ? "Deleting..." : "Delete"}
+            </Button>
           </AlertDialogFooter>
         </AlertDialogContent>
       </AlertDialog>
