@@ -21,6 +21,7 @@ import {
   Activity,
   AlertTriangle,
   ArrowRightLeft,
+  BarChart2,
   Bell,
   Box,
   ClipboardList,
@@ -76,6 +77,7 @@ const navGroups: NavGroup[] = [
     title: "Sales & Customers",
     items: [
       { title: "Sales Invoices", icon: ShoppingCart, url: "/sales", roles: ["super_admin", "finance", "sales_officer", "accountant"] },
+      { title: "Sales Report", icon: BarChart2, url: "/sales/report", roles: ["super_admin", "finance", "sales_officer", "accountant"] },
       { title: "Payments", icon: CreditCard, url: "/payments", roles: ["super_admin", "finance", "accountant"] },
       { title: "Customers", icon: Users, url: "/customers", roles: ["super_admin", "finance", "sales_officer", "accountant"] },
     ],

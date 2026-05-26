@@ -27,6 +27,7 @@ import ProductionDetail from "@/pages/production/detail";
 import SalesList from "@/pages/sales/index";
 import SalesNew from "@/pages/sales/new";
 import SaleDetail from "@/pages/sales/detail";
+import SalesReport from "@/pages/sales/report";
 import Payments from "@/pages/payments/index";
 import Users from "@/pages/users/index";
 import Stores from "@/pages/stores/index";
@@ -89,6 +90,7 @@ function Router() {
       <Route path="/production/new">{() => <ProtectedRoute component={ProductionNew} />}</Route>
       <Route path="/production/:id">{(params) => <ProtectedRoute component={ProductionDetail} id={params.id} />}</Route>
       <Route path="/sales">{() => <ProtectedRoute component={SalesList} />}</Route>
+      <Route path="/sales/report">{() => <ProtectedRoute component={SalesReport} />}</Route>
       <Route path="/sales/new">{() => <ProtectedRoute component={SalesNew} />}</Route>
       <Route path="/sales/:id">{(params) => <ProtectedRoute component={SaleDetail} id={params.id} />}</Route>
       <Route path="/payments">{() => <ProtectedRoute component={Payments} />}</Route>
