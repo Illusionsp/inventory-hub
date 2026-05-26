@@ -3,6 +3,7 @@ import cors from "cors";
 import pinoHttp from "pino-http";
 import session from "express-session";
 import cookieParser from "cookie-parser";
+import connectPgSimple from "connect-pg-simple";
 import router from "./routes";
 import { logger } from "./lib/logger";
 
@@ -12,6 +13,8 @@ declare module "express-session" {
     userRole: string;
   }
 }
+
+const PgStore = connectPgSimple(session);
 
 const app: Express = express();
 
@@ -42,6 +45,11 @@ app.use(express.urlencoded({ extended: true }));
 
 app.use(
   session({
+    store: new PgStore({
+      conString: process.env.DATABASE_URL,
+      tableName: "session",
+      pruneSessionInterval: 60 * 15, // prune expired sessions every 15 min
+    }),
     secret: process.env.SESSION_SECRET ?? "inventory-pro-secret",
     resave: false,
     saveUninitialized: false,
