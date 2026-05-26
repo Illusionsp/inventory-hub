@@ -37,6 +37,7 @@ import {
   Minus,
   Building2,
   Filter,
+  Printer,
 } from "lucide-react";
 
 const fmt = (n: number) =>
@@ -119,6 +120,187 @@ type FilterState = {
   status: string;
 };
 
+const PM_LABELS: Record<string, string> = {
+  cash: "Cash",
+  bank_transfer: "Bank Transfer",
+  cheque: "Cheque",
+};
+
+const STS_LABELS: Record<string, string> = {
+  paid: "Paid",
+  credit: "Credit",
+  partially_paid: "Partially Paid",
+  overdue: "Overdue",
+};
+
+function generatePrintHtml(data: SalesReportData, applied: FilterState): string {
+  const now = new Date().toLocaleString("en-US");
+  const s = data.summary;
+
+  const filterLine = [
+    applied.paymentType && `Payment Type: ${applied.paymentType}`,
+    applied.paymentMethod && `Method: ${PM_LABELS[applied.paymentMethod] ?? applied.paymentMethod}`,
+    applied.status && `Status: ${STS_LABELS[applied.status] ?? applied.status}`,
+  ].filter(Boolean).join(" | ");
+
+  const kpiHtml = [
+    ["Total Revenue", `ETB ${s.totalRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}`],
+    ["Invoices Issued", String(s.totalInvoices)],
+    ["VAT Collected", `ETB ${s.vatCollected.toLocaleString("en-US", { minimumFractionDigits: 2 })}`],
+    ["Withholding (WHT)", `ETB ${s.withholdingTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}`],
+    ["Cash Revenue", `ETB ${s.cashRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}`],
+    ["Credit Revenue", `ETB ${s.creditRevenue.toLocaleString("en-US", { minimumFractionDigits: 2 })}`],
+    ["Subtotal", `ETB ${s.subtotalSum.toLocaleString("en-US", { minimumFractionDigits: 2 })}`],
+    ["Discounts", `ETB ${s.discountTotal.toLocaleString("en-US", { minimumFractionDigits: 2 })}`],
+  ].map(([label, val]) => `
+    <div class="kpi">
+      <div class="kpi-label">${label}</div>
+      <div class="kpi-value">${val}</div>
+    </div>`).join("");
+
+  const invoiceRows = data.invoices.map(inv => {
+    const n = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2 });
+    return `
+      <tr>
+        <td class="mono">${inv.invoiceNumber}</td>
+        <td class="mono dim">${inv.fsNumber ?? "—"}</td>
+        <td>${inv.saleDate}</td>
+        <td>${inv.customerName ?? "—"}</td>
+        <td class="cap">${inv.paymentType}</td>
+        <td>${inv.paymentMethod ? (PM_LABELS[inv.paymentMethod] ?? inv.paymentMethod) : "—"}</td>
+        <td>${inv.bankName ?? "—"}</td>
+        <td class="cap">${STS_LABELS[inv.status] ?? inv.status}</td>
+        <td class="num">${n(inv.subtotal)}</td>
+        <td class="num${inv.vatAmount > 0 ? " amber" : ""}">${inv.vatAmount > 0 ? n(inv.vatAmount) : "—"}</td>
+        <td class="num${inv.withholdingAmount > 0 ? " red" : ""}">${inv.withholdingAmount > 0 ? n(inv.withholdingAmount) : "—"}</td>
+        <td class="num bold">${n(inv.totalAmount)}</td>
+        <td class="num${inv.balanceDue > 0 ? " red" : ""}">${inv.balanceDue > 0 ? n(inv.balanceDue) : "—"}</td>
+      </tr>`;
+  }).join("");
+
+  const periodRows = data.series.map(row => {
+    const n = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2 });
+    return `
+      <tr>
+        <td class="bold">${row.period}</td>
+        <td class="num">${row.invoiceCount}</td>
+        <td class="num dim">${n(row.subtotal)}</td>
+        <td class="num teal">${n(row.cashRevenue)}</td>
+        <td class="num purple">${n(row.creditRevenue)}</td>
+        <td class="num amber">${n(row.vatAmount)}</td>
+        <td class="num red">${row.withholdingAmount > 0 ? n(row.withholdingAmount) : "—"}</td>
+        <td class="num bold">${n(row.revenue)}</td>
+      </tr>`;
+  }).join("");
+
+  const n = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2 });
+
+  return `<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<title>Sales Report — ${data.from} to ${data.to}</title>
+<style>
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { font-family: "Segoe UI", Arial, sans-serif; font-size: 11px; color: #111; background: #fff; padding: 24px 28px; }
+  h1 { font-size: 20px; font-weight: 700; margin-bottom: 2px; }
+  .sub { color: #666; font-size: 12px; margin-bottom: 16px; }
+  .meta { display: flex; gap: 24px; font-size: 11px; color: #555; margin-bottom: 20px; border-top: 2px solid #111; padding-top: 10px; }
+  .meta span b { color: #111; }
+  .kpis { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 22px; }
+  .kpi { border: 1px solid #ddd; border-radius: 6px; padding: 10px 12px; }
+  .kpi-label { font-size: 10px; color: #888; text-transform: uppercase; letter-spacing: .04em; margin-bottom: 4px; }
+  .kpi-value { font-size: 13px; font-weight: 700; font-family: monospace; }
+  h2 { font-size: 13px; font-weight: 700; margin-bottom: 8px; border-bottom: 1px solid #eee; padding-bottom: 4px; }
+  table { width: 100%; border-collapse: collapse; margin-bottom: 28px; }
+  th { background: #f3f4f6; text-align: left; padding: 6px 8px; font-size: 10px; text-transform: uppercase; letter-spacing: .04em; color: #555; white-space: nowrap; border-bottom: 2px solid #ddd; }
+  td { padding: 5px 8px; border-bottom: 1px solid #eee; white-space: nowrap; vertical-align: middle; }
+  tr:last-child td { border-bottom: none; }
+  .num { text-align: right; font-family: monospace; }
+  .bold { font-weight: 700; }
+  .dim { color: #888; }
+  .cap { text-transform: capitalize; }
+  .mono { font-family: monospace; }
+  .amber { color: #b45309; }
+  .red { color: #dc2626; }
+  .teal { color: #0f766e; }
+  .purple { color: #7c3aed; }
+  .total-row td { background: #f9fafb; font-weight: 700; border-top: 2px solid #ccc; }
+  .footer { margin-top: 16px; font-size: 10px; color: #aaa; border-top: 1px solid #eee; padding-top: 8px; }
+  @media print {
+    body { padding: 12px 14px; }
+    @page { margin: 1.5cm; size: A4 landscape; }
+    .no-print { display: none; }
+  }
+</style>
+</head>
+<body>
+<button class="no-print" onclick="window.print()" style="margin-bottom:16px;padding:7px 18px;background:#111;color:#fff;border:none;border-radius:4px;font-size:12px;cursor:pointer;">🖨 Print / Save as PDF</button>
+
+<h1>Sales Report</h1>
+<p class="sub">Multi-Store Inventory Pro</p>
+<div class="meta">
+  <span><b>Period:</b> ${data.from} → ${data.to}</span>
+  <span><b>Grouping:</b> ${data.groupBy === "monthly" ? "Monthly" : "Daily"}</span>
+  ${filterLine ? `<span><b>Filters:</b> ${filterLine}</span>` : ""}
+  <span style="margin-left:auto;"><b>Generated:</b> ${now}</span>
+</div>
+
+<div class="kpis">${kpiHtml}</div>
+
+<h2>Invoice Details (${data.invoices.length} invoice${data.invoices.length !== 1 ? "s" : ""})</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Invoice #</th><th>FS #</th><th>Date</th><th>Buyer</th>
+      <th>Pay Type</th><th>Method</th><th>Bank</th><th>Status</th>
+      <th class="num">Subtotal</th><th class="num">VAT</th><th class="num">WHT</th>
+      <th class="num">Total</th><th class="num">Balance</th>
+    </tr>
+  </thead>
+  <tbody>${invoiceRows}</tbody>
+  <tfoot>
+    <tr class="total-row">
+      <td colspan="8">TOTAL (${data.invoices.length} invoices)</td>
+      <td class="num">${n(s.subtotalSum)}</td>
+      <td class="num amber">${n(s.vatCollected)}</td>
+      <td class="num red">${s.withholdingTotal > 0 ? n(s.withholdingTotal) : "—"}</td>
+      <td class="num">${n(s.totalRevenue)}</td>
+      <td></td>
+    </tr>
+  </tfoot>
+</table>
+
+${data.series.length > 1 ? `
+<h2>Period Breakdown</h2>
+<table>
+  <thead>
+    <tr>
+      <th>Period</th><th class="num">Inv.</th><th class="num">Subtotal</th>
+      <th class="num">Cash</th><th class="num">Credit</th>
+      <th class="num">VAT</th><th class="num">WHT</th><th class="num">Revenue</th>
+    </tr>
+  </thead>
+  <tbody>${periodRows}</tbody>
+  <tfoot>
+    <tr class="total-row">
+      <td>TOTAL</td>
+      <td class="num">${s.totalInvoices}</td>
+      <td class="num dim">${n(s.subtotalSum)}</td>
+      <td class="num teal">${n(s.cashRevenue)}</td>
+      <td class="num purple">${n(s.creditRevenue)}</td>
+      <td class="num amber">${n(s.vatCollected)}</td>
+      <td class="num red">${s.withholdingTotal > 0 ? n(s.withholdingTotal) : "—"}</td>
+      <td class="num">${n(s.totalRevenue)}</td>
+    </tr>
+  </tfoot>
+</table>` : ""}
+
+<div class="footer">Generated by Multi-Store Inventory Pro &bull; ${now}</div>
+</body>
+</html>`;
+}
+
 function getDefaultDates() {
   const today = new Date();
   const from = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
@@ -165,6 +347,15 @@ export default function SalesReport() {
   const handleApply = () => setApplied({ ...filters });
   const handleReset = () => { setFilters(emptyFilters); setApplied(emptyFilters); };
 
+  const handlePrint = () => {
+    if (!data) return;
+    const html = generatePrintHtml(data, applied);
+    const win = window.open("", "_blank");
+    if (!win) return;
+    win.document.write(html);
+    win.document.close();
+  };
+
   const setPreset = (preset: "today" | "week" | "month" | "year") => {
     const today = new Date();
     const pad = (n: number) => String(n).padStart(2, "0");
@@ -208,9 +399,21 @@ export default function SalesReport() {
 
   return (
     <div className="space-y-5">
-      <div>
-        <h1 className="text-3xl font-bold tracking-tight">Sales Report</h1>
-        <p className="text-muted-foreground mt-1">Revenue, VAT, withholding and payment analysis</p>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <h1 className="text-3xl font-bold tracking-tight">Sales Report</h1>
+          <p className="text-muted-foreground mt-1">Revenue, VAT, withholding and payment analysis</p>
+        </div>
+        <Button
+          type="button"
+          variant="outline"
+          onClick={handlePrint}
+          disabled={!data || isFetching}
+          className="shrink-0 mt-1"
+        >
+          <Printer className="h-4 w-4 mr-2" />
+          Print Report
+        </Button>
       </div>
 
       {/* ── Filters ── */}
