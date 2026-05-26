@@ -944,6 +944,8 @@ export interface StoreRequestItem {
   productId: number;
   quantity: string;
   /** @nullable */
+  unit?: string | null;
+  /** @nullable */
   productName?: string | null;
   /** @nullable */
   productSku?: string | null;
@@ -994,6 +996,7 @@ export interface StoreRequestList {
 export type CreateStoreRequestInputItemsItem = {
   productId: number;
   quantity: number;
+  unit?: string;
 };
 
 export interface CreateStoreRequestInput {

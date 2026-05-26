@@ -9,4 +9,5 @@
 export type CreateStoreRequestInputItemsItem = {
   productId: number;
   quantity: number;
+  unit?: string;
 };

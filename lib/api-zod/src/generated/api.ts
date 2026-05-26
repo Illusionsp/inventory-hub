@@ -1160,7 +1160,8 @@ export const CreateStoreRequestBody = zod.object({
   "notes": zod.string().optional(),
   "items": zod.array(zod.object({
   "productId": zod.number(),
-  "quantity": zod.number()
+  "quantity": zod.number(),
+  "unit": zod.string().optional()
 }))
 })
 
@@ -1188,6 +1189,7 @@ export const GetStoreRequestResponse = zod.object({
   "requestId": zod.number(),
   "productId": zod.number(),
   "quantity": zod.string(),
+  "unit": zod.string().nullish(),
   "productName": zod.string().nullish(),
   "productSku": zod.string().nullish()
 }))
@@ -1217,6 +1219,7 @@ export const ApproveStoreRequestResponse = zod.object({
   "requestId": zod.number(),
   "productId": zod.number(),
   "quantity": zod.string(),
+  "unit": zod.string().nullish(),
   "productName": zod.string().nullish(),
   "productSku": zod.string().nullish()
 }))
@@ -1250,6 +1253,7 @@ export const RejectStoreRequestResponse = zod.object({
   "requestId": zod.number(),
   "productId": zod.number(),
   "quantity": zod.string(),
+  "unit": zod.string().nullish(),
   "productName": zod.string().nullish(),
   "productSku": zod.string().nullish()
 }))
@@ -1279,6 +1283,7 @@ export const SendStoreRequestResponse = zod.object({
   "requestId": zod.number(),
   "productId": zod.number(),
   "quantity": zod.string(),
+  "unit": zod.string().nullish(),
   "productName": zod.string().nullish(),
   "productSku": zod.string().nullish()
 }))
@@ -1308,6 +1313,7 @@ export const ReceiveStoreRequestResponse = zod.object({
   "requestId": zod.number(),
   "productId": zod.number(),
   "quantity": zod.string(),
+  "unit": zod.string().nullish(),
   "productName": zod.string().nullish(),
   "productSku": zod.string().nullish()
 }))

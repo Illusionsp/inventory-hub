@@ -228,12 +228,13 @@ export default function StoreRequestDetail({ id }: { id: string }) {
                 <TableHead>Product</TableHead>
                 <TableHead>SKU</TableHead>
                 <TableHead className="text-right">Quantity</TableHead>
+                <TableHead>Unit</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {(request.items ?? []).length === 0 ? (
                 <TableRow>
-                  <TableCell colSpan={3} className="text-center py-8 text-muted-foreground">
+                  <TableCell colSpan={4} className="text-center py-8 text-muted-foreground">
                     No items
                   </TableCell>
                 </TableRow>
@@ -242,6 +243,7 @@ export default function StoreRequestDetail({ id }: { id: string }) {
                   <TableCell>{item.productName ?? `Product #${item.productId}`}</TableCell>
                   <TableCell className="text-muted-foreground text-sm">{item.productSku ?? "—"}</TableCell>
                   <TableCell className="text-right font-mono">{parseFloat(String(item.quantity)).toLocaleString()}</TableCell>
+                  <TableCell className="text-muted-foreground text-sm">{item.unit ?? "—"}</TableCell>
                 </TableRow>
               ))}
             </TableBody>

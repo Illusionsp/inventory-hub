@@ -2851,6 +2851,8 @@ components:
           type: integer
         quantity:
           type: string
+        unit:
+          type: ["string", "null"]
         productName:
           type: ["string", "null"]
         productSku:
@@ -2932,6 +2934,8 @@ components:
                 type: integer
               quantity:
                 type: number
+              unit:
+                type: string
 
     RejectStoreRequestInput:
       type: object

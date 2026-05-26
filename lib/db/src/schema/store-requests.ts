@@ -22,6 +22,7 @@ export const storeRequestItemsTable = pgTable("store_request_items", {
   requestId: integer("request_id").notNull(),
   productId: integer("product_id").notNull(),
   quantity: numeric("quantity", { precision: 12, scale: 3 }).notNull(),
+  unit: text("unit"),
 });
 
 export const insertStoreRequestSchema = createInsertSchema(storeRequestsTable).omit({ id: true, createdAt: true, updatedAt: true });

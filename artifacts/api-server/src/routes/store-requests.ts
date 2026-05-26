@@ -103,6 +103,7 @@ router.post("/store-requests", requireAuth, requirePermission("can_create_store_
       requestId: request.id,
       productId: item.productId,
       quantity: item.quantity.toString(),
+      unit: item.unit ?? null,
     });
   }
 
@@ -133,6 +134,7 @@ router.get("/store-requests/:id", requireAuth, async (req, res): Promise<void> =
       requestId: storeRequestItemsTable.requestId,
       productId: storeRequestItemsTable.productId,
       quantity: storeRequestItemsTable.quantity,
+      unit: storeRequestItemsTable.unit,
       productName: productsTable.name,
       productSku: productsTable.sku,
     })

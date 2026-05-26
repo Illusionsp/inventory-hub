@@ -12,7 +12,9 @@ import { ArrowLeft, Plus, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { useAuth } from "@/lib/auth";
 
-interface RequestItem { productId: string; quantity: string; }
+const UNITS = ["pcs", "kg", "g", "liters", "ml", "boxes", "bags", "cartons", "pallets", "rolls", "meters", "pairs"];
+
+interface RequestItem { productId: string; quantity: string; unit: string; }
 
 export default function StoreRequestNew() {
   const [, setLocation] = useLocation();
@@ -25,13 +27,13 @@ export default function StoreRequestNew() {
   );
   const [receivingStoreId, setReceivingStoreId] = useState("");
   const [notes, setNotes] = useState("");
-  const [items, setItems] = useState<RequestItem[]>([{ productId: "", quantity: "" }]);
+  const [items, setItems] = useState<RequestItem[]>([{ productId: "", quantity: "", unit: "pcs" }]);
 
   const { data: stores } = useListStores();
   const { data: productsData } = useListProducts({ limit: 200 });
   const createRequest = useCreateStoreRequest();
 
-  const addItem = () => setItems(prev => [...prev, { productId: "", quantity: "" }]);
+  const addItem = () => setItems(prev => [...prev, { productId: "", quantity: "", unit: "pcs" }]);
   const removeItem = (i: number) => setItems(prev => prev.filter((_, idx) => idx !== i));
   const updateItem = (i: number, field: keyof RequestItem, value: string) =>
     setItems(prev => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
@@ -61,6 +63,7 @@ export default function StoreRequestNew() {
           items: validItems.map(i => ({
             productId: parseInt(i.productId, 10),
             quantity: parseFloat(i.quantity),
+            unit: i.unit || undefined,
           })),
         },
       },
@@ -147,7 +150,7 @@ export default function StoreRequestNew() {
           </CardHeader>
           <CardContent className="space-y-3">
             {items.map((item, i) => (
-              <div key={i} className="grid grid-cols-[1fr_160px_40px] gap-3 items-end">
+              <div key={i} className="grid grid-cols-[1fr_120px_120px_40px] gap-3 items-end">
                 <div className="space-y-1.5">
                   {i === 0 && <Label>Product</Label>}
                   <Select value={item.productId} onValueChange={v => updateItem(i, "productId", v)}>
@@ -174,6 +177,17 @@ export default function StoreRequestNew() {
                     placeholder="0.000"
                     data-testid={`input-qty-${i}`}
                   />
+                </div>
+                <div className="space-y-1.5">
+                  {i === 0 && <Label>Unit</Label>}
+                  <Select value={item.unit} onValueChange={v => updateItem(i, "unit", v)}>
+                    <SelectTrigger data-testid={`select-unit-${i}`}>
+                      <SelectValue placeholder="Unit" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      {UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                    </SelectContent>
+                  </Select>
                 </div>
                 <Button
                   type="button"
