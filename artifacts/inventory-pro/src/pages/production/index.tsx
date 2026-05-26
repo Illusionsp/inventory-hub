@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useListProductionBatches, ListProductionBatchesStatus } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -15,6 +16,7 @@ const STATUS_BADGE: Record<string, string> = {
 
 export default function ProductionList() {
   const [, setLocation] = useLocation();
+  const { hasPermission } = useAuth();
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
 
@@ -27,9 +29,11 @@ export default function ProductionList() {
           <h1 className="text-2xl font-bold tracking-tight">Production Batches</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Track production runs, inputs, outputs & wastage</p>
         </div>
-        <Button onClick={() => setLocation("/production/new")} data-testid="button-new-batch">
-          <Plus className="h-4 w-4 mr-2" />New Batch
-        </Button>
+        {hasPermission("can_create_batch_production") && (
+          <Button onClick={() => setLocation("/production/new")} data-testid="button-new-batch">
+            <Plus className="h-4 w-4 mr-2" />New Batch
+          </Button>
+        )}
       </div>
 
       <div className="flex gap-3">

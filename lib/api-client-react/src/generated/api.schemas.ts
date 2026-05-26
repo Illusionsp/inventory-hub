@@ -34,6 +34,8 @@ export interface User {
   /** @nullable */
   storeId?: number | null;
   isActive: boolean;
+  /** Explicit permission overrides. null = use role-based defaults. */
+  permissions?: string[] | null;
   createdAt: string;
 }
 
@@ -65,6 +67,8 @@ export interface UserUpdate {
   /** @nullable */
   storeId?: number | null;
   isActive?: boolean;
+  /** Explicit permission overrides. null = use role-based defaults. */
+  permissions?: string[] | null;
 }
 
 export type StoreType = typeof StoreType[keyof typeof StoreType];

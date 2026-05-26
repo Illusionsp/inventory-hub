@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useListTransfers, useListStores, ListTransfersStatus } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
@@ -20,6 +21,7 @@ const STATUS_BADGE: Record<string, string> = {
 
 export default function TransferList() {
   const [, setLocation] = useLocation();
+  const { hasPermission } = useAuth();
   const [status, setStatus] = useState("all");
   const [page, setPage] = useState(1);
 
@@ -38,9 +40,11 @@ export default function TransferList() {
           <h1 className="text-2xl font-bold tracking-tight">Store Transfers</h1>
           <p className="text-muted-foreground text-sm mt-0.5">Manage inter-store transfer requests</p>
         </div>
-        <Button onClick={() => setLocation("/transfers/new")} data-testid="button-new-transfer">
-          <Plus className="h-4 w-4 mr-2" />New Transfer
-        </Button>
+        {hasPermission("can_create_store_requests") && (
+          <Button onClick={() => setLocation("/transfers/new")} data-testid="button-new-transfer">
+            <Plus className="h-4 w-4 mr-2" />New Transfer
+          </Button>
+        )}
       </div>
 
       <div className="flex gap-3 flex-wrap">

@@ -15,11 +15,12 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Checkbox } from "@/components/ui/checkbox";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Users, KeyRound, Pencil } from "lucide-react";
+import { Plus, Users, KeyRound, Pencil, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const ROLES = [
@@ -40,6 +41,27 @@ const ROLE_LABEL: Record<string, string> = {
   approver: "Approver",
 };
 
+// ── Permission definitions (mirrors lib/db/src/permissions.ts) ──────────────
+
+const PERMISSION_LIST = [
+  { key: "can_create_store_requests", label: "Create Store Requests", description: "Can create and dispatch store-to-store requests" },
+  { key: "can_approve_requests", label: "Approve / Reject Requests", description: "Can approve or reject GRNs, transfers, and store requests" },
+  { key: "can_receive_items", label: "Receive Items", description: "Can mark GRNs and store requests as received" },
+  { key: "can_view_request_status", label: "View Request Status", description: "Can view status of all pending requests" },
+  { key: "can_create_batch_production", label: "Create Production Batches", description: "Can start new production batch runs" },
+  { key: "can_manage_inventory", label: "Manage Inventory", description: "Can add, edit, or adjust inventory stock levels" },
+  { key: "can_view_reports", label: "View Reports & Analytics", description: "Can access sales reports and dashboard analytics" },
+] as const;
+
+const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
+  super_admin: PERMISSION_LIST.map(p => p.key),
+  store_manager: ["can_create_store_requests", "can_receive_items", "can_view_request_status", "can_manage_inventory", "can_view_reports"],
+  approver: ["can_approve_requests", "can_view_request_status", "can_view_reports"],
+  production_manager: ["can_create_batch_production", "can_view_request_status", "can_view_reports"],
+  finance_officer: ["can_view_reports", "can_view_request_status"],
+  sales_officer: ["can_view_reports"],
+};
+
 /** Raw fetch that always includes the per-tab session Bearer token */
 async function authedFetch(url: string, init: RequestInit = {}): Promise<Response> {
   const token = sessionStorage.getItem("tab_session");
@@ -54,6 +76,7 @@ export default function UsersPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const { user: currentUser } = useAuth();
+  const isSuperAdmin = currentUser?.role === "super_admin";
   const [page, setPage] = useState(1);
 
   // ── Create user state ──────────────────────────────────────────────────────
@@ -66,10 +89,13 @@ export default function UsersPage() {
 
   // ── Edit user state ────────────────────────────────────────────────────────
   const [editOpen, setEditOpen] = useState(false);
-  const [editTarget, setEditTarget] = useState<{ id: number; name: string } | null>(null);
+  const [editTarget, setEditTarget] = useState<{ id: number; name: string; role: string } | null>(null);
   const [eRole, setERole] = useState("sales_officer");
   const [eStoreId, setEStoreId] = useState("none");
   const [eIsActive, setEIsActive] = useState(true);
+  /** true = stored as null in DB (use role defaults). false = explicit array saved. */
+  const [eUseRoleDefaults, setEUseRoleDefaults] = useState(true);
+  const [ePermissions, setEPermissions] = useState<string[]>([]);
 
   // ── Set password state ─────────────────────────────────────────────────────
   const [pwOpen, setPwOpen] = useState(false);
@@ -86,7 +112,7 @@ export default function UsersPage() {
   const invalidateUsers = () => queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
   const invalidateMe = () => queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
 
-  // ── Set password mutation (uses authed fetch so Bearer token is included) ──
+  // ── Set password mutation ──────────────────────────────────────────────────
   const setPasswordMutation = useMutation({
     mutationFn: async ({ id, password }: { id: number; password: string }) => {
       const res = await authedFetch(`/api/users/${id}/password`, {
@@ -109,6 +135,21 @@ export default function UsersPage() {
     },
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
+
+  // ── Helpers ────────────────────────────────────────────────────────────────
+  const togglePermission = (key: string) => {
+    setEPermissions(prev =>
+      prev.includes(key) ? prev.filter(p => p !== key) : [...prev, key],
+    );
+  };
+
+  // When role changes in Edit dialog, reset permission selection to new role defaults
+  const handleERoleChange = (newRole: string) => {
+    setERole(newRole);
+    if (eUseRoleDefaults) {
+      setEPermissions(ROLE_DEFAULT_PERMISSIONS[newRole] ?? []);
+    }
+  };
 
   // ── Handlers ───────────────────────────────────────────────────────────────
   const handleCreate = () => {
@@ -140,15 +181,20 @@ export default function UsersPage() {
   };
 
   const openEdit = (u: any) => {
-    setEditTarget({ id: u.id, name: u.name });
+    setEditTarget({ id: u.id, name: u.name, role: u.role ?? "sales_officer" });
     setERole(u.role ?? "sales_officer");
     setEStoreId(u.storeId ? String(u.storeId) : "none");
     setEIsActive(u.isActive ?? true);
+    // u.permissions from the list is the raw stored value (null = role defaults)
+    const hasCustomPerms = Array.isArray(u.permissions) && u.permissions.length > 0;
+    setEUseRoleDefaults(!hasCustomPerms);
+    setEPermissions(hasCustomPerms ? u.permissions : (ROLE_DEFAULT_PERMISSIONS[u.role] ?? []));
     setEditOpen(true);
   };
 
   const handleEdit = () => {
     if (!editTarget) return;
+    const permissionsPayload = eUseRoleDefaults ? null : ePermissions;
     updateUser.mutate(
       {
         id: editTarget.id,
@@ -156,6 +202,7 @@ export default function UsersPage() {
           role: eRole,
           storeId: eStoreId !== "none" ? parseInt(eStoreId, 10) : null,
           isActive: eIsActive,
+          permissions: permissionsPayload,
         } as any,
       },
       {
@@ -164,7 +211,6 @@ export default function UsersPage() {
           setEditOpen(false);
           setEditTarget(null);
           invalidateUsers();
-          // If the admin just edited their own account, refresh the session user immediately
           if (editTarget.id === currentUser?.id) invalidateMe();
         },
         onError: (e: any) =>
@@ -200,7 +246,7 @@ export default function UsersPage() {
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Manage system users and role assignments</p>
+          <p className="text-muted-foreground text-sm mt-0.5">Manage system users, roles, and permissions</p>
         </div>
         <Button onClick={() => setCreateOpen(true)} data-testid="button-new-user">
           <Plus className="h-4 w-4 mr-2" />New User
@@ -221,8 +267,8 @@ export default function UsersPage() {
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
                   <TableHead>Store</TableHead>
+                  <TableHead>Permissions</TableHead>
                   <TableHead>Status</TableHead>
-                  <TableHead>Created</TableHead>
                   <TableHead></TableHead>
                 </TableRow>
               </TableHeader>
@@ -234,52 +280,63 @@ export default function UsersPage() {
                       No users found
                     </TableCell>
                   </TableRow>
-                ) : (data?.data ?? []).map((u: any) => (
-                  <TableRow key={u.id} data-testid={`row-user-${u.id}`}>
-                    <TableCell className="font-medium">{u.name}</TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
-                    <TableCell>
-                      <Badge variant="outline" className="text-xs">
-                        {ROLE_LABEL[u.role] ?? u.role}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {u.storeId ? (stores?.find((s: any) => s.id === u.storeId)?.name ?? `Store #${u.storeId}`) : "—"}
-                    </TableCell>
-                    <TableCell>
-                      <Badge variant={u.isActive ? "default" : "secondary"}>
-                        {u.isActive ? "Active" : "Inactive"}
-                      </Badge>
-                    </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">
-                      {new Date(u.createdAt).toLocaleDateString()}
-                    </TableCell>
-                    <TableCell>
-                      <div className="flex gap-1">
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs gap-1.5"
-                          onClick={() => openEdit(u)}
-                          data-testid={`button-edit-user-${u.id}`}
-                        >
-                          <Pencil className="h-3.5 w-3.5" />Edit
-                        </Button>
-                        <Button
-                          type="button"
-                          variant="ghost"
-                          size="sm"
-                          className="text-xs text-muted-foreground hover:text-foreground gap-1.5"
-                          onClick={() => openSetPassword({ id: u.id, name: u.name })}
-                          data-testid={`button-set-password-${u.id}`}
-                        >
-                          <KeyRound className="h-3.5 w-3.5" />Password
-                        </Button>
-                      </div>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                ) : (data?.data ?? []).map((u: any) => {
+                  const isCustomPerms = Array.isArray(u.permissions) && u.permissions.length > 0;
+                  return (
+                    <TableRow key={u.id} data-testid={`row-user-${u.id}`}>
+                      <TableCell className="font-medium">{u.name}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="text-xs">
+                          {ROLE_LABEL[u.role] ?? u.role}
+                        </Badge>
+                      </TableCell>
+                      <TableCell className="text-sm text-muted-foreground">
+                        {u.storeId ? (stores?.find((s: any) => s.id === u.storeId)?.name ?? `Store #${u.storeId}`) : "—"}
+                      </TableCell>
+                      <TableCell>
+                        {u.role === "super_admin" ? (
+                          <span className="text-xs text-muted-foreground">All (admin)</span>
+                        ) : isCustomPerms ? (
+                          <Badge variant="secondary" className="text-xs bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300">
+                            Custom ({u.permissions.length})
+                          </Badge>
+                        ) : (
+                          <span className="text-xs text-muted-foreground">Role defaults</span>
+                        )}
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant={u.isActive ? "default" : "secondary"}>
+                          {u.isActive ? "Active" : "Inactive"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <div className="flex gap-1">
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs gap-1.5"
+                            onClick={() => openEdit(u)}
+                            data-testid={`button-edit-user-${u.id}`}
+                          >
+                            <Pencil className="h-3.5 w-3.5" />Edit
+                          </Button>
+                          <Button
+                            type="button"
+                            variant="ghost"
+                            size="sm"
+                            className="text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                            onClick={() => openSetPassword({ id: u.id, name: u.name })}
+                            data-testid={`button-set-password-${u.id}`}
+                          >
+                            <KeyRound className="h-3.5 w-3.5" />Password
+                          </Button>
+                        </div>
+                      </TableCell>
+                    </TableRow>
+                  );
+                })}
               </TableBody>
             </Table>
           )}
@@ -345,6 +402,7 @@ export default function UsersPage() {
                 </SelectContent>
               </Select>
             </div>
+            <p className="text-xs text-muted-foreground">Permissions will default to the selected role. You can customize them after creation.</p>
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
@@ -362,14 +420,14 @@ export default function UsersPage() {
 
       {/* ── Edit User Dialog ───────────────────────────────────────────────── */}
       <Dialog open={editOpen} onOpenChange={setEditOpen}>
-        <DialogContent>
+        <DialogContent className="max-w-lg max-h-[90vh] overflow-y-auto">
           <DialogHeader>
             <DialogTitle>Edit User — {editTarget?.name}</DialogTitle>
           </DialogHeader>
           <div className="space-y-4">
             <div className="space-y-1.5">
               <Label>Role *</Label>
-              <Select value={eRole} onValueChange={setERole}>
+              <Select value={eRole} onValueChange={handleERoleChange}>
                 <SelectTrigger data-testid="select-edit-role">
                   <SelectValue />
                 </SelectTrigger>
@@ -403,6 +461,69 @@ export default function UsersPage() {
                 data-testid="switch-active"
               />
             </div>
+
+            {/* Permissions section — only super_admin can set; skip for super_admin targets */}
+            {isSuperAdmin && eRole !== "super_admin" && (
+              <div className="space-y-3 rounded-lg border p-3">
+                <div className="flex items-center justify-between">
+                  <div>
+                    <p className="text-sm font-semibold">Permissions</p>
+                    <p className="text-xs text-muted-foreground">
+                      {eUseRoleDefaults
+                        ? "Using role defaults — toggle to set custom permissions"
+                        : "Custom permissions — overrides role defaults"}
+                    </p>
+                  </div>
+                  <Button
+                    type="button"
+                    variant={eUseRoleDefaults ? "secondary" : "outline"}
+                    size="sm"
+                    className="text-xs gap-1.5 shrink-0"
+                    onClick={() => {
+                      const toDefaults = !eUseRoleDefaults;
+                      setEUseRoleDefaults(toDefaults);
+                      if (toDefaults) {
+                        setEPermissions(ROLE_DEFAULT_PERMISSIONS[eRole] ?? []);
+                      }
+                    }}
+                  >
+                    <RotateCcw className="h-3 w-3" />
+                    {eUseRoleDefaults ? "Role defaults" : "Reset to defaults"}
+                  </Button>
+                </div>
+
+                <div className="space-y-2">
+                  {PERMISSION_LIST.map(perm => (
+                    <div
+                      key={perm.key}
+                      className={`flex items-start gap-3 rounded-md p-2 transition-colors ${
+                        eUseRoleDefaults ? "opacity-60" : "hover:bg-accent/40"
+                      }`}
+                    >
+                      <Checkbox
+                        id={`perm-${perm.key}`}
+                        checked={ePermissions.includes(perm.key)}
+                        onCheckedChange={() => {
+                          if (eUseRoleDefaults) {
+                            // First toggle off role-defaults mode, then toggle this permission
+                            setEUseRoleDefaults(false);
+                          }
+                          togglePermission(perm.key);
+                        }}
+                        className="mt-0.5"
+                      />
+                      <label
+                        htmlFor={`perm-${perm.key}`}
+                        className="cursor-pointer select-none space-y-0.5"
+                      >
+                        <p className="text-sm font-medium leading-none">{perm.label}</p>
+                        <p className="text-xs text-muted-foreground">{perm.description}</p>
+                      </label>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
           </div>
           <DialogFooter>
             <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>

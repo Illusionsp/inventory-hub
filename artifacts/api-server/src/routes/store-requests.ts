@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { eq, and, or, SQL } from "drizzle-orm";
 import { db, storeRequestsTable, storeRequestItemsTable, notificationsTable, usersTable, productsTable } from "@workspace/db";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requirePermission } from "../lib/auth";
 
 const router = Router();
 
@@ -75,7 +75,7 @@ router.get("/store-requests", requireAuth, async (req, res): Promise<void> => {
   res.json({ data: rows, total, page: pageNum, limit: limitNum });
 });
 
-router.post("/store-requests", requireAuth, async (req, res): Promise<void> => {
+router.post("/store-requests", requireAuth, requirePermission("can_create_store_requests"), async (req, res): Promise<void> => {
   const { requestingStoreId, receivingStoreId, notes, items } = req.body;
   if (!requestingStoreId || !receivingStoreId || !items?.length) {
     res.status(400).json({ error: "requestingStoreId, receivingStoreId, and items are required" });
@@ -143,7 +143,7 @@ router.get("/store-requests/:id", requireAuth, async (req, res): Promise<void> =
   res.json({ ...request, items });
 });
 
-router.post("/store-requests/:id/approve", requireAuth, async (req, res): Promise<void> => {
+router.post("/store-requests/:id/approve", requireAuth, requirePermission("can_approve_requests"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const [request] = await db
     .update(storeRequestsTable)
@@ -163,7 +163,7 @@ router.post("/store-requests/:id/approve", requireAuth, async (req, res): Promis
   res.json({ ...request, items });
 });
 
-router.post("/store-requests/:id/reject", requireAuth, async (req, res): Promise<void> => {
+router.post("/store-requests/:id/reject", requireAuth, requirePermission("can_approve_requests"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const { reason } = req.body;
   const [request] = await db
@@ -184,7 +184,7 @@ router.post("/store-requests/:id/reject", requireAuth, async (req, res): Promise
   res.json({ ...request, items });
 });
 
-router.post("/store-requests/:id/send", requireAuth, async (req, res): Promise<void> => {
+router.post("/store-requests/:id/send", requireAuth, requirePermission("can_create_store_requests"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const [request] = await db
     .update(storeRequestsTable)
@@ -204,7 +204,7 @@ router.post("/store-requests/:id/send", requireAuth, async (req, res): Promise<v
   res.json({ ...request, items });
 });
 
-router.post("/store-requests/:id/receive", requireAuth, async (req, res): Promise<void> => {
+router.post("/store-requests/:id/receive", requireAuth, requirePermission("can_receive_items"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const [request] = await db
     .update(storeRequestsTable)

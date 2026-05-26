@@ -15,5 +15,7 @@ export interface User {
   /** @nullable */
   storeId?: number | null;
   isActive: boolean;
+  /** Explicit permission overrides. null = use role-based defaults. */
+  permissions?: string[] | null;
   createdAt: string;
 }

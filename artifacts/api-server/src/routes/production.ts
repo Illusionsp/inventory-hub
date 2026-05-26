@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { eq, and, SQL } from "drizzle-orm";
 import { db, productionBatchesTable, productionInputsTable, productionOutputsTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requirePermission } from "../lib/auth";
 
 const router = Router();
 
@@ -24,7 +24,7 @@ router.get("/production-batches", requireAuth, async (req, res): Promise<void> =
   res.json({ data, total, page: pageNum, limit: limitNum });
 });
 
-router.post("/production-batches", requireAuth, async (req, res): Promise<void> => {
+router.post("/production-batches", requireAuth, requirePermission("can_create_batch_production"), async (req, res): Promise<void> => {
   const { type, stageFromStoreId, stageToStoreId, plannedOutputQty, productionDate, responsibleUserId, notes, inputMaterials } = req.body;
   if (!type || !stageFromStoreId || !stageToStoreId || !plannedOutputQty) {
     res.status(400).json({ error: "Missing required fields" });

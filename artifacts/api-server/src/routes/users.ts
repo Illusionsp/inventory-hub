@@ -48,13 +48,15 @@ router.get("/users/:id", requireAuth, async (req, res): Promise<void> => {
 router.patch("/users/:id", requireAuth, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
-  const { name, email, role, storeId, isActive } = req.body;
+  const { name, email, role, storeId, isActive, permissions } = req.body;
   const updates: Record<string, unknown> = {};
   if (name !== undefined) updates.name = name;
   if (email !== undefined) updates.email = email;
   if (role !== undefined) updates.role = role;
   if (storeId !== undefined) updates.storeId = storeId;
   if (isActive !== undefined) updates.isActive = isActive;
+  // permissions: null = revert to role defaults; [] or string[] = explicit overrides
+  if (permissions !== undefined) updates.permissions = permissions;
   const [user] = await db.update(usersTable).set(updates).where(eq(usersTable.id, id)).returning();
   if (!user) { res.status(404).json({ error: "Not found" }); return; }
   const { passwordHash: _, ...safeUser } = user;

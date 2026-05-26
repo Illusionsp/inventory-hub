@@ -1,0 +1,1 @@
+- [Permission system](permission-system.md) — task-based permissions layered on roles; super_admin always has all; /auth/me returns effective perms; list /users returns raw (null = role defaults)

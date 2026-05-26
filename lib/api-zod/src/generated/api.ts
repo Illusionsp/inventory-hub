@@ -32,6 +32,7 @@ export const LoginResponse = zod.object({
   "role": zod.enum(['super_admin', 'store_manager', 'production_manager', 'sales_officer', 'finance_officer', 'approver']),
   "storeId": zod.number().nullish(),
   "isActive": zod.boolean(),
+  "permissions": zod.array(zod.string()).nullish().describe('Explicit permission overrides. null = use role-based defaults.'),
   "createdAt": zod.string()
 }),
   "token": zod.string()
@@ -48,6 +49,7 @@ export const GetMeResponse = zod.object({
   "role": zod.enum(['super_admin', 'store_manager', 'production_manager', 'sales_officer', 'finance_officer', 'approver']),
   "storeId": zod.number().nullish(),
   "isActive": zod.boolean(),
+  "permissions": zod.array(zod.string()).nullish().describe('Explicit permission overrides. null = use role-based defaults.'),
   "createdAt": zod.string()
 })
 
@@ -70,6 +72,7 @@ export const ListUsersResponse = zod.object({
   "role": zod.enum(['super_admin', 'store_manager', 'production_manager', 'sales_officer', 'finance_officer', 'approver']),
   "storeId": zod.number().nullish(),
   "isActive": zod.boolean(),
+  "permissions": zod.array(zod.string()).nullish().describe('Explicit permission overrides. null = use role-based defaults.'),
   "createdAt": zod.string()
 })),
   "total": zod.number(),
@@ -101,6 +104,7 @@ export const GetUserResponse = zod.object({
   "role": zod.enum(['super_admin', 'store_manager', 'production_manager', 'sales_officer', 'finance_officer', 'approver']),
   "storeId": zod.number().nullish(),
   "isActive": zod.boolean(),
+  "permissions": zod.array(zod.string()).nullish().describe('Explicit permission overrides. null = use role-based defaults.'),
   "createdAt": zod.string()
 })
 
@@ -114,7 +118,8 @@ export const UpdateUserBody = zod.object({
   "email": zod.string().optional(),
   "role": zod.string().optional(),
   "storeId": zod.number().nullish(),
-  "isActive": zod.boolean().optional()
+  "isActive": zod.boolean().optional(),
+  "permissions": zod.array(zod.string()).nullish().describe('Explicit permission overrides. null = use role-based defaults.')
 })
 
 export const UpdateUserResponse = zod.object({
@@ -124,6 +129,7 @@ export const UpdateUserResponse = zod.object({
   "role": zod.enum(['super_admin', 'store_manager', 'production_manager', 'sales_officer', 'finance_officer', 'approver']),
   "storeId": zod.number().nullish(),
   "isActive": zod.boolean(),
+  "permissions": zod.array(zod.string()).nullish().describe('Explicit permission overrides. null = use role-based defaults.'),
   "createdAt": zod.string()
 })
 

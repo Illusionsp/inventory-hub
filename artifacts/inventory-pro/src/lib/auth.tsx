@@ -7,6 +7,8 @@ interface AuthContextType {
   user: User | null;
   isLoading: boolean;
   isAuthenticated: boolean;
+  /** Returns true if the current user has a given permission key. */
+  hasPermission: (permission: string) => boolean;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -23,13 +25,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   });
   const [, setLocation] = useLocation();
 
-  // Only redirect when we have a confirmed unauthenticated state (not mid-fetch).
-  // Checking isFetching prevents the redirect during background re-validation.
   useEffect(() => {
     if (!isLoading && !isFetching && !user && window.location.pathname !== "/login") {
       setLocation("/login");
     }
   }, [user, isLoading, isFetching, setLocation]);
+
+  /**
+   * `user.permissions` returned by /api/auth/me is always the *effective*
+   * permissions array (role defaults applied server-side), never null.
+   */
+  function hasPermission(permission: string): boolean {
+    if (!user) return false;
+    if (user.role === "super_admin") return true;
+    return (user.permissions ?? []).includes(permission);
+  }
 
   return (
     <AuthContext.Provider
@@ -37,6 +47,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         user: user || null,
         isLoading,
         isAuthenticated: !!user,
+        hasPermission,
       }}
     >
       {children}

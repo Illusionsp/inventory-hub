@@ -10,6 +10,8 @@ export const usersTable = pgTable("users", {
   role: text("role").notNull().default("sales_officer"),
   storeId: integer("store_id"),
   isActive: boolean("is_active").notNull().default(true),
+  /** Explicit permission overrides. null = use role-based defaults. */
+  permissions: text("permissions").array(),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

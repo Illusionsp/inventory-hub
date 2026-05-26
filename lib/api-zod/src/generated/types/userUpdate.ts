@@ -13,4 +13,6 @@ export interface UserUpdate {
   /** @nullable */
   storeId?: number | null;
   isActive?: boolean;
+  /** Explicit permission overrides. null = use role-based defaults. */
+  permissions?: string[] | null;
 }

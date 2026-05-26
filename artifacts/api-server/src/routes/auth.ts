@@ -1,7 +1,7 @@
 import { Router } from "express";
 import bcrypt from "bcryptjs";
 import { eq } from "drizzle-orm";
-import { db, usersTable } from "@workspace/db";
+import { db, usersTable, getEffectivePermissions } from "@workspace/db";
 import { requireAuth } from "../lib/auth";
 
 const router = Router();
@@ -27,6 +27,7 @@ router.post("/auth/login", async (req, res): Promise<void> => {
 
   req.session.userId = user.id;
   req.session.userRole = user.role;
+  req.session.userPermissions = getEffectivePermissions(user);
 
   // Save the session before reading req.sessionID so the ID is stable.
   await new Promise<void>((resolve, reject) =>
@@ -63,7 +64,9 @@ router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
     return;
   }
   const { passwordHash: _, ...safeUser } = user;
-  res.json(safeUser);
+  // Return effective permissions (already computed by requireAuth → refreshUserData)
+  // so the frontend always gets a non-null string[] regardless of role defaults.
+  res.json({ ...safeUser, permissions: req.session.userPermissions ?? [] });
 });
 
 export default router;

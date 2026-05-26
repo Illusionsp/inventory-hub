@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { eq, and, SQL } from "drizzle-orm";
 import { db, grnsTable, grnItemsTable, suppliersTable, storesTable, usersTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requirePermission } from "../lib/auth";
 
 const router = Router();
 
@@ -142,7 +142,7 @@ router.post("/grns/:id/submit", requireAuth, async (req, res): Promise<void> => 
   res.json({ ...grn, supplierName: null, storeName: null, approverName: null, items: [] });
 });
 
-router.post("/grns/:id/approve", requireAuth, async (req, res): Promise<void> => {
+router.post("/grns/:id/approve", requireAuth, requirePermission("can_approve_requests"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const [grn] = await db.update(grnsTable).set({ status: "approved", approvedById: req.session.userId, approvedAt: new Date() }).where(eq(grnsTable.id, id)).returning();
   if (!grn) { res.status(404).json({ error: "Not found" }); return; }
@@ -163,7 +163,7 @@ router.post("/grns/:id/approve", requireAuth, async (req, res): Promise<void> =>
   res.json({ ...grn, supplierName: null, storeName: null, approverName: null, items });
 });
 
-router.post("/grns/:id/reject", requireAuth, async (req, res): Promise<void> => {
+router.post("/grns/:id/reject", requireAuth, requirePermission("can_approve_requests"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const { notes } = req.body;
   const [grn] = await db.update(grnsTable).set({ status: "rejected", rejectionReason: notes ?? null }).where(eq(grnsTable.id, id)).returning();

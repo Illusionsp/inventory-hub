@@ -1,7 +1,7 @@
 import { Router } from "express";
 import { eq, and, SQL, lte } from "drizzle-orm";
 import { db, inventoryTable, inventoryMovementsTable, productsTable, storesTable } from "@workspace/db";
-import { requireAuth } from "../lib/auth";
+import { requireAuth, requirePermission } from "../lib/auth";
 
 const router = Router();
 
@@ -70,7 +70,7 @@ router.get("/inventory/movements", requireAuth, async (req, res): Promise<void> 
   res.json({ data: rows, total, page: pageNum, limit: limitNum });
 });
 
-router.post("/inventory/adjustments", requireAuth, async (req, res): Promise<void> => {
+router.post("/inventory/adjustments", requireAuth, requirePermission("can_manage_inventory"), async (req, res): Promise<void> => {
   const { productId, storeId, quantity, reason, notes } = req.body;
   if (!productId || !storeId || quantity === undefined || !reason) {
     res.status(400).json({ error: "Missing required fields" });

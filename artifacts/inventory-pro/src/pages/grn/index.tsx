@@ -1,6 +1,7 @@
 import React, { useState } from "react";
 import { useListGrns } from "@workspace/api-client-react";
 import { Link } from "wouter";
+import { useAuth } from "@/lib/auth";
 import {
   Table,
   TableBody,
@@ -17,6 +18,7 @@ import { Plus } from "lucide-react";
 import { format } from "date-fns";
 
 export default function GrnList() {
+  const { hasPermission } = useAuth();
   const [status, setStatus] = useState<string>("all");
 
   const { data: grnsData, isLoading } = useListGrns({
@@ -52,11 +54,13 @@ export default function GrnList() {
             Manage incoming stock from suppliers.
           </p>
         </div>
-        <Button asChild>
-          <Link href="/grn/new">
-            <Plus className="mr-2 h-4 w-4" /> Create GRN
-          </Link>
-        </Button>
+        {hasPermission("can_receive_items") && (
+          <Button asChild>
+            <Link href="/grn/new">
+              <Plus className="mr-2 h-4 w-4" /> Create GRN
+            </Link>
+          </Button>
+        )}
       </div>
 
       <div className="flex items-center gap-4 bg-card p-4 rounded-lg border">
