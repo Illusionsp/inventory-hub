@@ -1,63 +1,107 @@
 import { useState } from "react";
-import { useListUsers, useCreateUser, getListUsersQueryKey } from "@workspace/api-client-react";
+import {
+  useListUsers,
+  useCreateUser,
+  useUpdateUser,
+  useListStores,
+  getListUsersQueryKey,
+  getGetMeQueryKey,
+} from "@workspace/api-client-react";
 import { useQueryClient, useMutation } from "@tanstack/react-query";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Switch } from "@/components/ui/switch";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Dialog, DialogContent, DialogFooter, DialogHeader, DialogTitle } from "@/components/ui/dialog";
-import { Plus, Users, KeyRound } from "lucide-react";
+import { Plus, Users, KeyRound, Pencil } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
-const ROLES = ["super_admin", "store_manager", "production_manager", "sales_officer", "finance_officer", "approver"];
+const ROLES = [
+  "super_admin",
+  "store_manager",
+  "production_manager",
+  "sales_officer",
+  "finance_officer",
+  "approver",
+];
+
 const ROLE_LABEL: Record<string, string> = {
-  super_admin: "Super Admin", store_manager: "Store Manager", production_manager: "Production Manager",
-  sales_officer: "Sales Officer", finance_officer: "Finance Officer", approver: "Approver",
+  super_admin: "Super Admin",
+  store_manager: "Store Manager",
+  production_manager: "Production Manager",
+  sales_officer: "Sales Officer",
+  finance_officer: "Finance Officer",
+  approver: "Approver",
 };
+
+/** Raw fetch that always includes the per-tab session Bearer token */
+async function authedFetch(url: string, init: RequestInit = {}): Promise<Response> {
+  const token = sessionStorage.getItem("tab_session");
+  const headers: Record<string, string> = {
+    "Content-Type": "application/json",
+    ...(token ? { Authorization: `Bearer ${token}` } : {}),
+  };
+  return fetch(url, { credentials: "include", ...init, headers: { ...headers, ...(init.headers as Record<string, string> | undefined ?? {}) } });
+}
 
 export default function UsersPage() {
   const { toast } = useToast();
   const queryClient = useQueryClient();
+  const { user: currentUser } = useAuth();
   const [page, setPage] = useState(1);
 
-  // Create user dialog
-  const [dialogOpen, setDialogOpen] = useState(false);
-  const [name, setName] = useState("");
-  const [email, setEmail] = useState("");
-  const [password, setPassword] = useState("");
-  const [role, setRole] = useState("sales_officer");
+  // ── Create user state ──────────────────────────────────────────────────────
+  const [createOpen, setCreateOpen] = useState(false);
+  const [cName, setCName] = useState("");
+  const [cEmail, setCEmail] = useState("");
+  const [cPassword, setCPassword] = useState("");
+  const [cRole, setCRole] = useState("sales_officer");
+  const [cStoreId, setCStoreId] = useState("none");
 
-  // Set password dialog
-  const [pwDialogOpen, setPwDialogOpen] = useState(false);
+  // ── Edit user state ────────────────────────────────────────────────────────
+  const [editOpen, setEditOpen] = useState(false);
+  const [editTarget, setEditTarget] = useState<{ id: number; name: string } | null>(null);
+  const [eRole, setERole] = useState("sales_officer");
+  const [eStoreId, setEStoreId] = useState("none");
+  const [eIsActive, setEIsActive] = useState(true);
+
+  // ── Set password state ─────────────────────────────────────────────────────
+  const [pwOpen, setPwOpen] = useState(false);
   const [pwTarget, setPwTarget] = useState<{ id: number; name: string } | null>(null);
   const [newPassword, setNewPassword] = useState("");
   const [confirmPassword, setConfirmPassword] = useState("");
   const [showPw, setShowPw] = useState(false);
 
   const { data, isLoading } = useListUsers({ page, limit: 20 });
+  const { data: stores } = useListStores();
   const createUser = useCreateUser();
+  const updateUser = useUpdateUser();
 
+  const invalidateUsers = () => queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+  const invalidateMe = () => queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
+
+  // ── Set password mutation (uses authed fetch so Bearer token is included) ──
   const setPasswordMutation = useMutation({
     mutationFn: async ({ id, password }: { id: number; password: string }) => {
-      const res = await fetch(`/api/users/${id}/password`, {
+      const res = await authedFetch(`/api/users/${id}/password`, {
         method: "PATCH",
-        headers: { "Content-Type": "application/json" },
-        credentials: "include",
         body: JSON.stringify({ password }),
       });
       if (!res.ok) {
         const err = await res.json().catch(() => ({}));
-        throw new Error(err.error ?? "Failed to set password");
+        throw new Error((err as any).error ?? "Failed to set password");
       }
       return res.json();
     },
     onSuccess: () => {
       toast({ title: "Password updated", description: `Password changed for ${pwTarget?.name}` });
-      setPwDialogOpen(false);
+      setPwOpen(false);
       setPwTarget(null);
       setNewPassword("");
       setConfirmPassword("");
@@ -66,27 +110,75 @@ export default function UsersPage() {
     onError: (e: Error) => toast({ title: "Error", description: e.message, variant: "destructive" }),
   });
 
+  // ── Handlers ───────────────────────────────────────────────────────────────
   const handleCreate = () => {
-    if (!name || !email || !password || !role) { toast({ title: "Fill all fields", variant: "destructive" }); return; }
+    if (!cName || !cEmail || !cPassword || !cRole) {
+      toast({ title: "Fill all required fields", variant: "destructive" });
+      return;
+    }
     createUser.mutate(
-      { data: { name, email, password, role } as any },
+      {
+        data: {
+          name: cName,
+          email: cEmail,
+          password: cPassword,
+          role: cRole,
+          storeId: cStoreId !== "none" ? parseInt(cStoreId, 10) : undefined,
+        } as any,
+      },
       {
         onSuccess: () => {
           toast({ title: "User created" });
-          setDialogOpen(false); setName(""); setEmail(""); setPassword(""); setRole("sales_officer");
-          queryClient.invalidateQueries({ queryKey: getListUsersQueryKey() });
+          setCreateOpen(false);
+          setCName(""); setCEmail(""); setCPassword(""); setCRole("sales_officer"); setCStoreId("none");
+          invalidateUsers();
         },
-        onError: () => toast({ title: "Failed to create user", variant: "destructive" }),
-      }
+        onError: (e: any) =>
+          toast({ title: "Failed to create user", description: e?.message, variant: "destructive" }),
+      },
     );
   };
 
-  const openSetPassword = (user: { id: number; name: string }) => {
-    setPwTarget(user);
+  const openEdit = (u: any) => {
+    setEditTarget({ id: u.id, name: u.name });
+    setERole(u.role ?? "sales_officer");
+    setEStoreId(u.storeId ? String(u.storeId) : "none");
+    setEIsActive(u.isActive ?? true);
+    setEditOpen(true);
+  };
+
+  const handleEdit = () => {
+    if (!editTarget) return;
+    updateUser.mutate(
+      {
+        id: editTarget.id,
+        data: {
+          role: eRole,
+          storeId: eStoreId !== "none" ? parseInt(eStoreId, 10) : null,
+          isActive: eIsActive,
+        } as any,
+      },
+      {
+        onSuccess: () => {
+          toast({ title: "User updated", description: `${editTarget.name} updated successfully` });
+          setEditOpen(false);
+          setEditTarget(null);
+          invalidateUsers();
+          // If the admin just edited their own account, refresh the session user immediately
+          if (editTarget.id === currentUser?.id) invalidateMe();
+        },
+        onError: (e: any) =>
+          toast({ title: "Failed to update user", description: e?.message, variant: "destructive" }),
+      },
+    );
+  };
+
+  const openSetPassword = (u: { id: number; name: string }) => {
+    setPwTarget(u);
     setNewPassword("");
     setConfirmPassword("");
     setShowPw(false);
-    setPwDialogOpen(true);
+    setPwOpen(true);
   };
 
   const handleSetPassword = () => {
@@ -102,14 +194,15 @@ export default function UsersPage() {
     setPasswordMutation.mutate({ id: pwTarget.id, password: newPassword });
   };
 
+  // ── Render ─────────────────────────────────────────────────────────────────
   return (
     <div className="p-6 space-y-6">
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-2xl font-bold tracking-tight">User Management</h1>
-          <p className="text-muted-foreground text-sm mt-0.5">Manage system users and roles</p>
+          <p className="text-muted-foreground text-sm mt-0.5">Manage system users and role assignments</p>
         </div>
-        <Button onClick={() => setDialogOpen(true)} data-testid="button-new-user">
+        <Button onClick={() => setCreateOpen(true)} data-testid="button-new-user">
           <Plus className="h-4 w-4 mr-2" />New User
         </Button>
       </div>
@@ -117,7 +210,9 @@ export default function UsersPage() {
       <Card>
         <CardContent className="p-0">
           {isLoading ? (
-            <div className="p-6 space-y-3">{Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}</div>
+            <div className="p-6 space-y-3">
+              {Array.from({ length: 6 }).map((_, i) => <Skeleton key={i} className="h-12 w-full" />)}
+            </div>
           ) : (
             <Table>
               <TableHeader>
@@ -125,6 +220,7 @@ export default function UsersPage() {
                   <TableHead>Name</TableHead>
                   <TableHead>Email</TableHead>
                   <TableHead>Role</TableHead>
+                  <TableHead>Store</TableHead>
                   <TableHead>Status</TableHead>
                   <TableHead>Created</TableHead>
                   <TableHead></TableHead>
@@ -133,7 +229,7 @@ export default function UsersPage() {
               <TableBody>
                 {(data?.data ?? []).length === 0 ? (
                   <TableRow>
-                    <TableCell colSpan={6} className="text-center py-12 text-muted-foreground">
+                    <TableCell colSpan={7} className="text-center py-12 text-muted-foreground">
                       <Users className="mx-auto h-8 w-8 mb-2 opacity-30" />
                       No users found
                     </TableCell>
@@ -142,22 +238,45 @@ export default function UsersPage() {
                   <TableRow key={u.id} data-testid={`row-user-${u.id}`}>
                     <TableCell className="font-medium">{u.name}</TableCell>
                     <TableCell className="text-sm text-muted-foreground">{u.email}</TableCell>
-                    <TableCell><Badge variant="outline" className="text-xs">{ROLE_LABEL[u.role] ?? u.role}</Badge></TableCell>
                     <TableCell>
-                      <Badge variant={u.isActive ? "default" : "secondary"}>{u.isActive ? "Active" : "Inactive"}</Badge>
+                      <Badge variant="outline" className="text-xs">
+                        {ROLE_LABEL[u.role] ?? u.role}
+                      </Badge>
                     </TableCell>
-                    <TableCell className="text-sm text-muted-foreground">{new Date(u.createdAt).toLocaleDateString()}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {u.storeId ? (stores?.find((s: any) => s.id === u.storeId)?.name ?? `Store #${u.storeId}`) : "—"}
+                    </TableCell>
                     <TableCell>
-                      <Button
-                        type="button"
-                        variant="ghost"
-                        size="sm"
-                        className="text-xs text-muted-foreground hover:text-foreground gap-1.5"
-                        onClick={() => openSetPassword({ id: u.id, name: u.name })}
-                      >
-                        <KeyRound className="h-3.5 w-3.5" />
-                        Set Password
-                      </Button>
+                      <Badge variant={u.isActive ? "default" : "secondary"}>
+                        {u.isActive ? "Active" : "Inactive"}
+                      </Badge>
+                    </TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {new Date(u.createdAt).toLocaleDateString()}
+                    </TableCell>
+                    <TableCell>
+                      <div className="flex gap-1">
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs gap-1.5"
+                          onClick={() => openEdit(u)}
+                          data-testid={`button-edit-user-${u.id}`}
+                        >
+                          <Pencil className="h-3.5 w-3.5" />Edit
+                        </Button>
+                        <Button
+                          type="button"
+                          variant="ghost"
+                          size="sm"
+                          className="text-xs text-muted-foreground hover:text-foreground gap-1.5"
+                          onClick={() => openSetPassword({ id: u.id, name: u.name })}
+                          data-testid={`button-set-password-${u.id}`}
+                        >
+                          <KeyRound className="h-3.5 w-3.5" />Password
+                        </Button>
+                      </div>
                     </TableCell>
                   </TableRow>
                 ))}
@@ -169,48 +288,138 @@ export default function UsersPage() {
 
       {(data?.total ?? 0) > 20 && (
         <div className="flex justify-center gap-2">
-          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>Previous</Button>
+          <Button variant="outline" size="sm" disabled={page === 1} onClick={() => setPage(p => p - 1)}>
+            Previous
+          </Button>
           <span className="text-sm text-muted-foreground py-2">Page {page}</span>
-          <Button variant="outline" size="sm" disabled={(page * 20) >= (data?.total ?? 0)} onClick={() => setPage(p => p + 1)}>Next</Button>
+          <Button
+            variant="outline"
+            size="sm"
+            disabled={(page * 20) >= (data?.total ?? 0)}
+            onClick={() => setPage(p => p + 1)}
+          >
+            Next
+          </Button>
         </div>
       )}
 
-      {/* Create User Dialog */}
-      <Dialog open={dialogOpen} onOpenChange={setDialogOpen}>
+      {/* ── Create User Dialog ─────────────────────────────────────────────── */}
+      <Dialog open={createOpen} onOpenChange={setCreateOpen}>
         <DialogContent>
           <DialogHeader><DialogTitle>New User</DialogTitle></DialogHeader>
           <div className="space-y-3">
             <div className="space-y-1.5">
               <Label>Full Name *</Label>
-              <Input value={name} onChange={e => setName(e.target.value)} data-testid="input-name" />
+              <Input value={cName} onChange={e => setCName(e.target.value)} data-testid="input-name" />
             </div>
             <div className="space-y-1.5">
               <Label>Email *</Label>
-              <Input type="email" value={email} onChange={e => setEmail(e.target.value)} data-testid="input-email" />
+              <Input type="email" value={cEmail} onChange={e => setCEmail(e.target.value)} data-testid="input-email" />
             </div>
             <div className="space-y-1.5">
               <Label>Password *</Label>
-              <Input type="password" value={password} onChange={e => setPassword(e.target.value)} data-testid="input-password" />
+              <Input type="password" value={cPassword} onChange={e => setCPassword(e.target.value)} data-testid="input-password" />
             </div>
             <div className="space-y-1.5">
               <Label>Role *</Label>
-              <Select value={role} onValueChange={setRole}>
-                <SelectTrigger data-testid="select-role"><SelectValue /></SelectTrigger>
-                <SelectContent>{ROLES.map(r => <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>)}</SelectContent>
+              <Select value={cRole} onValueChange={setCRole}>
+                <SelectTrigger data-testid="select-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLES.map(r => <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Assigned Store</Label>
+              <Select value={cStoreId} onValueChange={setCStoreId}>
+                <SelectTrigger data-testid="select-store">
+                  <SelectValue placeholder="No store" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No store assigned</SelectItem>
+                  {(stores ?? []).map((s: any) => (
+                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
               </Select>
             </div>
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setDialogOpen(false)}>Cancel</Button>
-            <Button type="button" onClick={handleCreate} disabled={createUser.isPending} data-testid="button-create-user">
-              {createUser.isPending ? "Creating..." : "Create"}
+            <Button type="button" variant="outline" onClick={() => setCreateOpen(false)}>Cancel</Button>
+            <Button
+              type="button"
+              onClick={handleCreate}
+              disabled={createUser.isPending}
+              data-testid="button-create-user"
+            >
+              {createUser.isPending ? "Creating..." : "Create User"}
             </Button>
           </DialogFooter>
         </DialogContent>
       </Dialog>
 
-      {/* Set Password Dialog */}
-      <Dialog open={pwDialogOpen} onOpenChange={setPwDialogOpen}>
+      {/* ── Edit User Dialog ───────────────────────────────────────────────── */}
+      <Dialog open={editOpen} onOpenChange={setEditOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit User — {editTarget?.name}</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4">
+            <div className="space-y-1.5">
+              <Label>Role *</Label>
+              <Select value={eRole} onValueChange={setERole}>
+                <SelectTrigger data-testid="select-edit-role">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {ROLES.map(r => <SelectItem key={r} value={r}>{ROLE_LABEL[r]}</SelectItem>)}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="space-y-1.5">
+              <Label>Assigned Store</Label>
+              <Select value={eStoreId} onValueChange={setEStoreId}>
+                <SelectTrigger data-testid="select-edit-store">
+                  <SelectValue placeholder="No store" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="none">No store assigned</SelectItem>
+                  {(stores ?? []).map((s: any) => (
+                    <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+            <div className="flex items-center justify-between rounded-lg border p-3">
+              <div>
+                <p className="text-sm font-medium">Active Status</p>
+                <p className="text-xs text-muted-foreground">Inactive users cannot log in</p>
+              </div>
+              <Switch
+                checked={eIsActive}
+                onCheckedChange={setEIsActive}
+                data-testid="switch-active"
+              />
+            </div>
+          </div>
+          <DialogFooter>
+            <Button type="button" variant="outline" onClick={() => setEditOpen(false)}>Cancel</Button>
+            <Button
+              type="button"
+              onClick={handleEdit}
+              disabled={updateUser.isPending}
+              data-testid="button-save-user"
+            >
+              {updateUser.isPending ? "Saving..." : "Save Changes"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* ── Set Password Dialog ────────────────────────────────────────────── */}
+      <Dialog open={pwOpen} onOpenChange={setPwOpen}>
         <DialogContent>
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2">
@@ -226,6 +435,7 @@ export default function UsersPage() {
                 value={newPassword}
                 onChange={e => setNewPassword(e.target.value)}
                 placeholder="Minimum 6 characters"
+                data-testid="input-new-password"
               />
             </div>
             <div className="space-y-1.5">
@@ -235,6 +445,7 @@ export default function UsersPage() {
                 value={confirmPassword}
                 onChange={e => setConfirmPassword(e.target.value)}
                 placeholder="Re-enter password"
+                data-testid="input-confirm-password"
               />
             </div>
             <div className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -252,11 +463,12 @@ export default function UsersPage() {
             )}
           </div>
           <DialogFooter>
-            <Button type="button" variant="outline" onClick={() => setPwDialogOpen(false)}>Cancel</Button>
+            <Button type="button" variant="outline" onClick={() => setPwOpen(false)}>Cancel</Button>
             <Button
               type="button"
               onClick={handleSetPassword}
               disabled={setPasswordMutation.isPending || !newPassword || newPassword !== confirmPassword}
+              data-testid="button-save-password"
             >
               {setPasswordMutation.isPending ? "Saving..." : "Save Password"}
             </Button>
