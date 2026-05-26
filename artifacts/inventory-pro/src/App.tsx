@@ -1,5 +1,5 @@
 import { Switch, Route, Router as WouterRouter, Redirect } from "wouter";
-import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
+import { QueryClient, QueryClientProvider, QueryCache, MutationCache } from "@tanstack/react-query";
 import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
@@ -37,9 +37,36 @@ import Stores from "@/pages/stores/index";
 import Notifications from "@/pages/notifications/index";
 import AuditLogs from "@/pages/audit/index";
 
+/**
+ * When a mutation (write operation) returns 401, it means the user's session
+ * expired mid-flight. Clear the stale token and redirect to login — but only
+ * if the tab actually had a token (i.e. was previously logged in). If there
+ * was no token the AuthProvider / ProtectedRoute already handles the redirect,
+ * and we must not interfere with another tab that is still authenticated.
+ */
+function onMutation401(error: unknown) {
+  if ((error as any)?.status === 401) {
+    const hadToken = !!sessionStorage.getItem("tab_session");
+    sessionStorage.removeItem("tab_session");
+    const base = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
+    if (hadToken && !window.location.pathname.endsWith("/login")) {
+      window.location.replace(`${base}/login`);
+    }
+  }
+}
+
 const queryClient = new QueryClient({
+  // Only intercept mutation (write) 401s. Query 401s are handled by
+  // AuthProvider + ProtectedRoute, which already redirect to /login cleanly.
+  mutationCache: new MutationCache({ onError: onMutation401 }),
   defaultOptions: {
-    queries: { retry: 1, staleTime: 30000 },
+    queries: {
+      // Never retry auth failures — detect session expiry immediately so
+      // ProtectedRoute can redirect without a multi-second retry delay.
+      retry: (failureCount, error) =>
+        (error as any)?.status === 401 ? false : failureCount < 1,
+      staleTime: 30000,
+    },
   },
 });
 

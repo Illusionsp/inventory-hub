@@ -18,6 +18,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryKey: getGetMeQueryKey(),
       staleTime: 60_000,
       refetchOnWindowFocus: true,
+      retry: false,
     },
   });
   const [, setLocation] = useLocation();
