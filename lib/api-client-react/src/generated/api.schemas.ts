@@ -415,6 +415,10 @@ export interface Grn {
   /** @nullable */
   notes?: string | null;
   /** @nullable */
+  storeManagerName?: string | null;
+  /** @nullable */
+  approverSignatureName?: string | null;
+  /** @nullable */
   approvedById?: number | null;
   /** @nullable */
   approverName?: string | null;
@@ -446,6 +450,10 @@ export interface GrnInput {
   vatApplicable?: boolean;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  storeManagerName?: string | null;
+  /** @nullable */
+  approverSignatureName?: string | null;
   items: GrnItem[];
 }
 
@@ -460,6 +468,10 @@ export interface GrnUpdate {
   vatApplicable?: boolean;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  storeManagerName?: string | null;
+  /** @nullable */
+  approverSignatureName?: string | null;
   items?: GrnItem[];
 }
 

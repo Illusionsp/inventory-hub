@@ -16,6 +16,8 @@ export const grnsTable = pgTable("grns", {
   vatApplicable: boolean("vat_applicable").notNull().default(false),
   vatAmount: numeric("vat_amount", { precision: 14, scale: 2 }).notNull().default("0"),
   notes: text("notes"),
+  storeManagerName: text("store_manager_name"),
+  approverSignatureName: text("approver_signature_name"),
   createdById: integer("created_by_id"),
   approvedById: integer("approved_by_id"),
   approvedAt: timestamp("approved_at"),

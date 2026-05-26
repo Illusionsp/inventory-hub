@@ -93,17 +93,6 @@ function PrintableGrn({ grn }: { grn: any }) {
         </div>
       </div>
 
-      {/* Personnel */}
-      <div className="grid grid-cols-2 gap-4 mb-6">
-        <div className="border border-gray-200 rounded p-3 bg-gray-50">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Store Manager</p>
-          <p className="font-semibold text-gray-900">{grn.createdByName || "—"}</p>
-        </div>
-        <div className="border border-gray-200 rounded p-3 bg-gray-50">
-          <p className="text-[10px] font-bold text-gray-400 uppercase tracking-wider mb-1">Approved By</p>
-          <p className="font-semibold text-gray-900">{grn.approverName || "Pending"}</p>
-        </div>
-      </div>
 
       {/* Items Table */}
       <table className="w-full border-collapse mb-6 text-xs">
@@ -170,8 +159,8 @@ function PrintableGrn({ grn }: { grn: any }) {
       {/* Signature Section */}
       <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "24px", marginTop: "32px", paddingTop: "24px", borderTop: "2px solid #e5e7eb" }}>
         {[
-          { label: "Prepared By (Store Manager)", name: grn.createdByName },
-          { label: "Approved By", name: grn.approverName },
+          { label: "Prepared By (Store Manager)", name: grn.storeManagerName },
+          { label: "Approved By", name: grn.approverSignatureName },
           { label: "Finance / Payment", name: grn.status === "paid" ? "Paid ✓" : "Pending" },
         ].map(({ label, name }) => (
           <div key={label} style={{ textAlign: "center" }}>

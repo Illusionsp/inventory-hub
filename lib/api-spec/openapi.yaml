@@ -1883,6 +1883,10 @@ components:
           type: number
         notes:
           type: ["string", "null"]
+        storeManagerName:
+          type: ["string", "null"]
+        approverSignatureName:
+          type: ["string", "null"]
         approvedById:
           type: ["integer", "null"]
         approverName:
@@ -1933,6 +1937,10 @@ components:
           type: boolean
         notes:
           type: ["string", "null"]
+        storeManagerName:
+          type: ["string", "null"]
+        approverSignatureName:
+          type: ["string", "null"]
         items:
           type: array
           items:
@@ -1952,6 +1960,10 @@ components:
         vatApplicable:
           type: boolean
         notes:
+          type: ["string", "null"]
+        storeManagerName:
+          type: ["string", "null"]
+        approverSignatureName:
           type: ["string", "null"]
         items:
           type: array

@@ -18,5 +18,9 @@ export interface GrnUpdate {
   vatApplicable?: boolean;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  storeManagerName?: string | null;
+  /** @nullable */
+  approverSignatureName?: string | null;
   items?: GrnItem[];
 }

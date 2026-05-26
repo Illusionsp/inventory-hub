@@ -48,7 +48,7 @@ router.get("/grns", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.post("/grns", requireAuth, async (req, res): Promise<void> => {
-  const { supplierId, storeId, invoiceNumber, poNumber, deliveryNoteNumber, receivedDate, vatApplicable, notes, items } = req.body;
+  const { supplierId, storeId, invoiceNumber, poNumber, deliveryNoteNumber, receivedDate, vatApplicable, notes, storeManagerName, approverSignatureName, items } = req.body;
   if (!supplierId || !storeId || !receivedDate || !items?.length) {
     res.status(400).json({ error: "Missing required fields" });
     return;
@@ -62,7 +62,10 @@ router.post("/grns", requireAuth, async (req, res): Promise<void> => {
     grnNumber, supplierId, storeId, invoiceNumber: invoiceNumber ?? null, poNumber: poNumber ?? null,
     deliveryNoteNumber: deliveryNoteNumber ?? null, receivedDate, totalCost: totalCost.toString(),
     vatApplicable: vatApplicable ?? false, vatAmount: vatAmount.toString(),
-    notes: notes ?? null, createdById: req.session.userId,
+    notes: notes ?? null,
+    storeManagerName: storeManagerName ?? null,
+    approverSignatureName: approverSignatureName ?? null,
+    createdById: req.session.userId,
   }).returning();
 
   for (const item of items) {
@@ -88,6 +91,8 @@ router.get("/grns/:id", requireAuth, async (req, res): Promise<void> => {
       deliveryNoteNumber: grnsTable.deliveryNoteNumber, receivedDate: grnsTable.receivedDate,
       totalCost: grnsTable.totalCost, vatApplicable: grnsTable.vatApplicable,
       vatAmount: grnsTable.vatAmount, notes: grnsTable.notes,
+      storeManagerName: grnsTable.storeManagerName,
+      approverSignatureName: grnsTable.approverSignatureName,
       createdById: grnsTable.createdById,
       approvedById: grnsTable.approvedById, approvedAt: grnsTable.approvedAt,
       rejectionReason: grnsTable.rejectionReason, createdAt: grnsTable.createdAt,

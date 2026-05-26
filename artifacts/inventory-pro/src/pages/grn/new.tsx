@@ -51,6 +51,8 @@ const grnSchema = z.object({
   deliveryNoteNumber: z.string().optional(),
   vatApplicable: z.boolean().default(false),
   notes: z.string().optional(),
+  storeManagerName: z.string().optional(),
+  approverSignatureName: z.string().optional(),
   items: z.array(grnItemSchema).min(1, "At least one item is required"),
 });
 
@@ -376,6 +378,36 @@ export default function CreateGrn() {
                   </div>
                 </div>
               </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader>
+              <CardTitle>Signatures</CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <FormField
+                control={form.control}
+                name="storeManagerName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Store Manager Name</FormLabel>
+                    <FormControl><Input placeholder="Name of the store manager preparing this GRN" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
+              <FormField
+                control={form.control}
+                name="approverSignatureName"
+                render={({ field }) => (
+                  <FormItem>
+                    <FormLabel>Approver Name</FormLabel>
+                    <FormControl><Input placeholder="Name of the person who will approve" {...field} /></FormControl>
+                    <FormMessage />
+                  </FormItem>
+                )}
+              />
             </CardContent>
           </Card>
 
