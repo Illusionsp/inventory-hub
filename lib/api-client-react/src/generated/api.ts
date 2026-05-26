@@ -27,6 +27,7 @@ import type {
   Category,
   CategoryInput,
   CompleteBatchInput,
+  CreateStoreRequestInput,
   Customer,
   CustomerInput,
   CustomerList,
@@ -54,6 +55,7 @@ import type {
   ListProductionBatchesParams,
   ListProductsParams,
   ListSalesParams,
+  ListStoreRequestsParams,
   ListSuppliersParams,
   ListTransfersParams,
   ListUsersParams,
@@ -73,12 +75,15 @@ import type {
   ProductionBatchList,
   ProductionSummary,
   ReceiveTransferInput,
+  RejectStoreRequestInput,
   Sale,
   SaleInput,
   SaleList,
   ShipTransferInput,
   Store,
   StoreInput,
+  StoreRequestList,
+  StoreRequestWithItems,
   StoreUpdate,
   Supplier,
   SupplierInput,
@@ -3356,6 +3361,478 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getReceiveTransferMutationOptions(options));
+    }
+
+export const getListStoreRequestsUrl = (params?: ListStoreRequestsParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/store-requests?${stringifiedParams}` : `/api/store-requests`
+}
+
+export const listStoreRequests = async (params?: ListStoreRequestsParams, options?: RequestInit): Promise<StoreRequestList> => {
+
+  return customFetch<StoreRequestList>(getListStoreRequestsUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListStoreRequestsQueryKey = (params?: ListStoreRequestsParams,) => {
+    return [
+    `/api/store-requests`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListStoreRequestsQueryOptions = <TData = Awaited<ReturnType<typeof listStoreRequests>>, TError = ErrorType<unknown>>(params?: ListStoreRequestsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listStoreRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListStoreRequestsQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listStoreRequests>>> = ({ signal }) => listStoreRequests(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listStoreRequests>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListStoreRequestsQueryResult = NonNullable<Awaited<ReturnType<typeof listStoreRequests>>>
+export type ListStoreRequestsQueryError = ErrorType<unknown>
+
+
+
+export function useListStoreRequests<TData = Awaited<ReturnType<typeof listStoreRequests>>, TError = ErrorType<unknown>>(
+ params?: ListStoreRequestsParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listStoreRequests>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListStoreRequestsQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateStoreRequestUrl = () => {
+
+
+
+
+  return `/api/store-requests`
+}
+
+export const createStoreRequest = async (createStoreRequestInput: CreateStoreRequestInput, options?: RequestInit): Promise<StoreRequestWithItems> => {
+
+  return customFetch<StoreRequestWithItems>(getCreateStoreRequestUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      createStoreRequestInput,)
+  }
+);}
+
+
+
+
+export const getCreateStoreRequestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStoreRequest>>, TError,{data: BodyType<CreateStoreRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createStoreRequest>>, TError,{data: BodyType<CreateStoreRequestInput>}, TContext> => {
+
+const mutationKey = ['createStoreRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createStoreRequest>>, {data: BodyType<CreateStoreRequestInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createStoreRequest(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateStoreRequestMutationResult = NonNullable<Awaited<ReturnType<typeof createStoreRequest>>>
+    export type CreateStoreRequestMutationBody = BodyType<CreateStoreRequestInput>
+    export type CreateStoreRequestMutationError = ErrorType<unknown>
+
+    export const useCreateStoreRequest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createStoreRequest>>, TError,{data: BodyType<CreateStoreRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createStoreRequest>>,
+        TError,
+        {data: BodyType<CreateStoreRequestInput>},
+        TContext
+      > => {
+      return useMutation(getCreateStoreRequestMutationOptions(options));
+    }
+
+export const getGetStoreRequestUrl = (id: number,) => {
+
+
+
+
+  return `/api/store-requests/${id}`
+}
+
+export const getStoreRequest = async (id: number, options?: RequestInit): Promise<StoreRequestWithItems> => {
+
+  return customFetch<StoreRequestWithItems>(getGetStoreRequestUrl(id),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getGetStoreRequestQueryKey = (id: number,) => {
+    return [
+    `/api/store-requests/${id}`
+    ] as const;
+    }
+
+
+export const getGetStoreRequestQueryOptions = <TData = Awaited<ReturnType<typeof getStoreRequest>>, TError = ErrorType<unknown>>(id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStoreRequest>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getGetStoreRequestQueryKey(id);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof getStoreRequest>>> = ({ signal }) => getStoreRequest(id, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, enabled: !!(id), ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof getStoreRequest>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type GetStoreRequestQueryResult = NonNullable<Awaited<ReturnType<typeof getStoreRequest>>>
+export type GetStoreRequestQueryError = ErrorType<unknown>
+
+
+
+export function useGetStoreRequest<TData = Awaited<ReturnType<typeof getStoreRequest>>, TError = ErrorType<unknown>>(
+ id: number, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof getStoreRequest>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getGetStoreRequestQueryOptions(id,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getApproveStoreRequestUrl = (id: number,) => {
+
+
+
+
+  return `/api/store-requests/${id}/approve`
+}
+
+export const approveStoreRequest = async (id: number, options?: RequestInit): Promise<StoreRequestWithItems> => {
+
+  return customFetch<StoreRequestWithItems>(getApproveStoreRequestUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getApproveStoreRequestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveStoreRequest>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof approveStoreRequest>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['approveStoreRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof approveStoreRequest>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  approveStoreRequest(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ApproveStoreRequestMutationResult = NonNullable<Awaited<ReturnType<typeof approveStoreRequest>>>
+
+    export type ApproveStoreRequestMutationError = ErrorType<unknown>
+
+    export const useApproveStoreRequest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof approveStoreRequest>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof approveStoreRequest>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getApproveStoreRequestMutationOptions(options));
+    }
+
+export const getRejectStoreRequestUrl = (id: number,) => {
+
+
+
+
+  return `/api/store-requests/${id}/reject`
+}
+
+export const rejectStoreRequest = async (id: number,
+    rejectStoreRequestInput?: RejectStoreRequestInput, options?: RequestInit): Promise<StoreRequestWithItems> => {
+
+  return customFetch<StoreRequestWithItems>(getRejectStoreRequestUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      rejectStoreRequestInput,)
+  }
+);}
+
+
+
+
+export const getRejectStoreRequestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectStoreRequest>>, TError,{id: number;data?: BodyType<RejectStoreRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof rejectStoreRequest>>, TError,{id: number;data?: BodyType<RejectStoreRequestInput>}, TContext> => {
+
+const mutationKey = ['rejectStoreRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof rejectStoreRequest>>, {id: number;data?: BodyType<RejectStoreRequestInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  rejectStoreRequest(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type RejectStoreRequestMutationResult = NonNullable<Awaited<ReturnType<typeof rejectStoreRequest>>>
+    export type RejectStoreRequestMutationBody = BodyType<RejectStoreRequestInput> | undefined
+    export type RejectStoreRequestMutationError = ErrorType<unknown>
+
+    export const useRejectStoreRequest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof rejectStoreRequest>>, TError,{id: number;data?: BodyType<RejectStoreRequestInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof rejectStoreRequest>>,
+        TError,
+        {id: number;data?: BodyType<RejectStoreRequestInput>},
+        TContext
+      > => {
+      return useMutation(getRejectStoreRequestMutationOptions(options));
+    }
+
+export const getSendStoreRequestUrl = (id: number,) => {
+
+
+
+
+  return `/api/store-requests/${id}/send`
+}
+
+export const sendStoreRequest = async (id: number, options?: RequestInit): Promise<StoreRequestWithItems> => {
+
+  return customFetch<StoreRequestWithItems>(getSendStoreRequestUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getSendStoreRequestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendStoreRequest>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof sendStoreRequest>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['sendStoreRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof sendStoreRequest>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  sendStoreRequest(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type SendStoreRequestMutationResult = NonNullable<Awaited<ReturnType<typeof sendStoreRequest>>>
+
+    export type SendStoreRequestMutationError = ErrorType<unknown>
+
+    export const useSendStoreRequest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof sendStoreRequest>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof sendStoreRequest>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getSendStoreRequestMutationOptions(options));
+    }
+
+export const getReceiveStoreRequestUrl = (id: number,) => {
+
+
+
+
+  return `/api/store-requests/${id}/receive`
+}
+
+export const receiveStoreRequest = async (id: number, options?: RequestInit): Promise<StoreRequestWithItems> => {
+
+  return customFetch<StoreRequestWithItems>(getReceiveStoreRequestUrl(id),
+  {
+    ...options,
+    method: 'POST'
+
+
+  }
+);}
+
+
+
+
+export const getReceiveStoreRequestMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof receiveStoreRequest>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof receiveStoreRequest>>, TError,{id: number}, TContext> => {
+
+const mutationKey = ['receiveStoreRequest'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof receiveStoreRequest>>, {id: number}> = (props) => {
+          const {id} = props ?? {};
+
+          return  receiveStoreRequest(id,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type ReceiveStoreRequestMutationResult = NonNullable<Awaited<ReturnType<typeof receiveStoreRequest>>>
+
+    export type ReceiveStoreRequestMutationError = ErrorType<unknown>
+
+    export const useReceiveStoreRequest = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof receiveStoreRequest>>, TError,{id: number}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof receiveStoreRequest>>,
+        TError,
+        {id: number},
+        TContext
+      > => {
+      return useMutation(getReceiveStoreRequestMutationOptions(options));
     }
 
 export const getListProductionBatchesUrl = (params?: ListProductionBatchesParams,) => {

@@ -24,6 +24,7 @@ tags:
   - name: dashboard
   - name: notifications
   - name: audit
+  - name: store-requests
 
 paths:
   /healthz:
@@ -947,6 +948,150 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/Transfer"
+
+  # STORE REQUESTS
+  /store-requests:
+    get:
+      operationId: listStoreRequests
+      tags: [store-requests]
+      parameters:
+        - name: status
+          in: query
+          schema:
+            type: string
+            enum: [pending, approved, rejected, sent, received]
+        - name: direction
+          in: query
+          schema:
+            type: string
+            enum: [incoming, outgoing]
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of store requests
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreRequestList"
+    post:
+      operationId: createStoreRequest
+      tags: [store-requests]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/CreateStoreRequestInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreRequestWithItems"
+
+  /store-requests/{id}:
+    get:
+      operationId: getStoreRequest
+      tags: [store-requests]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Store request detail
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreRequestWithItems"
+
+  /store-requests/{id}/approve:
+    post:
+      operationId: approveStoreRequest
+      tags: [store-requests]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Approved
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreRequestWithItems"
+
+  /store-requests/{id}/reject:
+    post:
+      operationId: rejectStoreRequest
+      tags: [store-requests]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: false
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/RejectStoreRequestInput"
+      responses:
+        "200":
+          description: Rejected
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreRequestWithItems"
+
+  /store-requests/{id}/send:
+    post:
+      operationId: sendStoreRequest
+      tags: [store-requests]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Marked as sent
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreRequestWithItems"
+
+  /store-requests/{id}/receive:
+    post:
+      operationId: receiveStoreRequest
+      tags: [store-requests]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: Marked as received
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/StoreRequestWithItems"
 
   # PRODUCTION
   /production-batches:
@@ -2680,3 +2825,104 @@ components:
           type: integer
         limit:
           type: integer
+
+    # STORE REQUESTS
+    StoreRequestItem:
+      type: object
+      required: [id, requestId, productId, quantity]
+      properties:
+        id:
+          type: integer
+        requestId:
+          type: integer
+        productId:
+          type: integer
+        quantity:
+          type: string
+        productName:
+          type: ["string", "null"]
+        productSku:
+          type: ["string", "null"]
+
+    StoreRequest:
+      type: object
+      required: [id, requestNumber, requestingStoreId, receivingStoreId, status, createdAt, updatedAt]
+      properties:
+        id:
+          type: integer
+        requestNumber:
+          type: string
+        requestingStoreId:
+          type: integer
+        receivingStoreId:
+          type: integer
+        requestedById:
+          type: ["integer", "null"]
+        status:
+          type: string
+          enum: [pending, approved, rejected, sent, received]
+        notes:
+          type: ["string", "null"]
+        rejectionReason:
+          type: ["string", "null"]
+        sentAt:
+          type: ["string", "null"]
+        receivedAt:
+          type: ["string", "null"]
+        createdAt:
+          type: string
+        updatedAt:
+          type: string
+
+    StoreRequestWithItems:
+      allOf:
+        - $ref: "#/components/schemas/StoreRequest"
+        - type: object
+          required: [items]
+          properties:
+            items:
+              type: array
+              items:
+                $ref: "#/components/schemas/StoreRequestItem"
+
+    StoreRequestList:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/StoreRequest"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    CreateStoreRequestInput:
+      type: object
+      required: [requestingStoreId, receivingStoreId, items]
+      properties:
+        requestingStoreId:
+          type: integer
+        receivingStoreId:
+          type: integer
+        notes:
+          type: string
+        items:
+          type: array
+          items:
+            type: object
+            required: [productId, quantity]
+            properties:
+              productId:
+                type: integer
+              quantity:
+                type: number
+
+    RejectStoreRequestInput:
+      type: object
+      properties:
+        reason:
+          type: string

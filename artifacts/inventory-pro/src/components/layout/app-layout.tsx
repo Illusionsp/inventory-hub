@@ -34,6 +34,7 @@ import {
   ShoppingCart,
   Store,
   Users,
+  SendHorizonal,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -70,6 +71,7 @@ const navGroups: NavGroup[] = [
       { title: "Movements", icon: ArrowRightLeft, url: "/inventory/movements", roles: ["super_admin", "store_manager"] },
       { title: "Production Batches", icon: Factory, url: "/production", roles: ["super_admin", "store_manager"] },
       { title: "Store Transfers", icon: Box, url: "/transfers", roles: ["super_admin", "store_manager", "approver"] },
+      { title: "Store Requests", icon: SendHorizonal, url: "/store-requests", roles: ["super_admin", "store_manager", "approver"] },
       { title: "Goods Receiving", icon: ClipboardList, url: "/grn", roles: ["super_admin", "store_manager", "approver", "finance", "accountant"] },
     ],
   },

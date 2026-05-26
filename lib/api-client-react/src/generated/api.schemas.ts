@@ -934,6 +934,75 @@ export interface AuditLogList {
   limit: number;
 }
 
+export interface StoreRequestItem {
+  id: number;
+  requestId: number;
+  productId: number;
+  quantity: string;
+  /** @nullable */
+  productName?: string | null;
+  /** @nullable */
+  productSku?: string | null;
+}
+
+export type StoreRequestStatus = typeof StoreRequestStatus[keyof typeof StoreRequestStatus];
+
+
+export const StoreRequestStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+  sent: 'sent',
+  received: 'received',
+} as const;
+
+export interface StoreRequest {
+  id: number;
+  requestNumber: string;
+  requestingStoreId: number;
+  receivingStoreId: number;
+  /** @nullable */
+  requestedById?: number | null;
+  status: StoreRequestStatus;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  rejectionReason?: string | null;
+  /** @nullable */
+  sentAt?: string | null;
+  /** @nullable */
+  receivedAt?: string | null;
+  createdAt: string;
+  updatedAt: string;
+}
+
+export type StoreRequestWithItems = StoreRequest & {
+  items: StoreRequestItem[];
+};
+
+export interface StoreRequestList {
+  data: StoreRequest[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type CreateStoreRequestInputItemsItem = {
+  productId: number;
+  quantity: number;
+};
+
+export interface CreateStoreRequestInput {
+  requestingStoreId: number;
+  receivingStoreId: number;
+  notes?: string;
+  items: CreateStoreRequestInputItemsItem[];
+}
+
+export interface RejectStoreRequestInput {
+  reason?: string;
+}
+
 export type ListUsersParams = {
 role?: string;
 search?: string;
@@ -1013,6 +1082,32 @@ export const ListTransfersStatus = {
   rejected: 'rejected',
   shipped: 'shipped',
   received: 'received',
+} as const;
+
+export type ListStoreRequestsParams = {
+status?: ListStoreRequestsStatus;
+direction?: ListStoreRequestsDirection;
+page?: number;
+limit?: number;
+};
+
+export type ListStoreRequestsStatus = typeof ListStoreRequestsStatus[keyof typeof ListStoreRequestsStatus];
+
+
+export const ListStoreRequestsStatus = {
+  pending: 'pending',
+  approved: 'approved',
+  rejected: 'rejected',
+  sent: 'sent',
+  received: 'received',
+} as const;
+
+export type ListStoreRequestsDirection = typeof ListStoreRequestsDirection[keyof typeof ListStoreRequestsDirection];
+
+
+export const ListStoreRequestsDirection = {
+  incoming: 'incoming',
+  outgoing: 'outgoing',
 } as const;
 
 export type ListProductionBatchesParams = {

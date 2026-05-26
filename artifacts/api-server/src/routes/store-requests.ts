@@ -1,0 +1,220 @@
+import { Router } from "express";
+import { eq, and, or, SQL } from "drizzle-orm";
+import { db, storeRequestsTable, storeRequestItemsTable, notificationsTable, usersTable, productsTable } from "@workspace/db";
+import { requireAuth } from "../lib/auth";
+
+const router = Router();
+
+async function nextRequestNumber(): Promise<string> {
+  const rows = await db.select({ id: storeRequestsTable.id }).from(storeRequestsTable);
+  return `SRQ-${String(rows.length + 1001).padStart(6, "0")}`;
+}
+
+/** Create a notification for the manager(s) of a given store */
+async function notifyStoreManager(
+  storeId: number,
+  title: string,
+  message: string,
+  entityId: number,
+): Promise<void> {
+  const managers = await db
+    .select({ id: usersTable.id })
+    .from(usersTable)
+    .where(and(eq(usersTable.storeId, storeId), eq(usersTable.role, "store_manager"), eq(usersTable.isActive, true)));
+
+  for (const m of managers) {
+    await db.insert(notificationsTable).values({
+      userId: m.id,
+      type: "store_request",
+      title,
+      message,
+      entityType: "store_request",
+      entityId,
+    });
+  }
+}
+
+/** Resolve storeId for the current user */
+async function getUserStoreId(userId: number): Promise<number | null> {
+  const [user] = await db.select({ storeId: usersTable.storeId }).from(usersTable).where(eq(usersTable.id, userId));
+  return user?.storeId ?? null;
+}
+
+router.get("/store-requests", requireAuth, async (req, res): Promise<void> => {
+  const { status, direction, page = "1", limit = "20" } = req.query as Record<string, string>;
+  const pageNum = parseInt(page, 10);
+  const limitNum = parseInt(limit, 10);
+  const offset = (pageNum - 1) * limitNum;
+
+  const userStoreId = await getUserStoreId(req.session.userId!);
+  const userRole = req.session.userRole;
+
+  const conditions: SQL[] = [];
+  if (status) conditions.push(eq(storeRequestsTable.status, status));
+
+  // Store managers only see requests related to their own store
+  if (userRole === "store_manager" && userStoreId) {
+    if (direction === "outgoing") {
+      conditions.push(eq(storeRequestsTable.requestingStoreId, userStoreId));
+    } else if (direction === "incoming") {
+      conditions.push(eq(storeRequestsTable.receivingStoreId, userStoreId));
+    } else {
+      conditions.push(
+        or(
+          eq(storeRequestsTable.requestingStoreId, userStoreId),
+          eq(storeRequestsTable.receivingStoreId, userStoreId),
+        )!,
+      );
+    }
+  }
+
+  const where = conditions.length > 0 ? and(...conditions) : undefined;
+  const rows = await db.select().from(storeRequestsTable).where(where).orderBy(storeRequestsTable.createdAt).limit(limitNum).offset(offset);
+  const total = await db.$count(storeRequestsTable, where);
+
+  res.json({ data: rows, total, page: pageNum, limit: limitNum });
+});
+
+router.post("/store-requests", requireAuth, async (req, res): Promise<void> => {
+  const { requestingStoreId, receivingStoreId, notes, items } = req.body;
+  if (!requestingStoreId || !receivingStoreId || !items?.length) {
+    res.status(400).json({ error: "requestingStoreId, receivingStoreId, and items are required" });
+    return;
+  }
+  if (requestingStoreId === receivingStoreId) {
+    res.status(400).json({ error: "Requesting and receiving stores must differ" });
+    return;
+  }
+
+  const requestNumber = await nextRequestNumber();
+  const [request] = await db
+    .insert(storeRequestsTable)
+    .values({
+      requestNumber,
+      requestingStoreId,
+      receivingStoreId,
+      notes: notes ?? null,
+      requestedById: req.session.userId,
+    })
+    .returning();
+
+  for (const item of items) {
+    await db.insert(storeRequestItemsTable).values({
+      requestId: request.id,
+      productId: item.productId,
+      quantity: item.quantity.toString(),
+    });
+  }
+
+  const insertedItems = await db
+    .select()
+    .from(storeRequestItemsTable)
+    .where(eq(storeRequestItemsTable.requestId, request.id));
+
+  // Notify receiving store manager(s)
+  await notifyStoreManager(
+    receivingStoreId,
+    "New Store Request",
+    `Request ${requestNumber} received from store #${requestingStoreId}. Please review and approve or reject.`,
+    request.id,
+  );
+
+  res.status(201).json({ ...request, items: insertedItems });
+});
+
+router.get("/store-requests/:id", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+  const [request] = await db.select().from(storeRequestsTable).where(eq(storeRequestsTable.id, id));
+  if (!request) { res.status(404).json({ error: "Not found" }); return; }
+
+  const items = await db
+    .select({
+      id: storeRequestItemsTable.id,
+      requestId: storeRequestItemsTable.requestId,
+      productId: storeRequestItemsTable.productId,
+      quantity: storeRequestItemsTable.quantity,
+      productName: productsTable.name,
+      productSku: productsTable.sku,
+    })
+    .from(storeRequestItemsTable)
+    .leftJoin(productsTable, eq(storeRequestItemsTable.productId, productsTable.id))
+    .where(eq(storeRequestItemsTable.requestId, id));
+
+  res.json({ ...request, items });
+});
+
+router.post("/store-requests/:id/approve", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+  const [request] = await db
+    .update(storeRequestsTable)
+    .set({ status: "approved", updatedAt: new Date() })
+    .where(and(eq(storeRequestsTable.id, id), eq(storeRequestsTable.status, "pending")))
+    .returning();
+  if (!request) { res.status(404).json({ error: "Not found or not pending" }); return; }
+
+  await notifyStoreManager(
+    request.requestingStoreId,
+    "Store Request Approved",
+    `Your request ${request.requestNumber} has been approved. You can now dispatch the items.`,
+    id,
+  );
+
+  const items = await db.select().from(storeRequestItemsTable).where(eq(storeRequestItemsTable.requestId, id));
+  res.json({ ...request, items });
+});
+
+router.post("/store-requests/:id/reject", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+  const { reason } = req.body;
+  const [request] = await db
+    .update(storeRequestsTable)
+    .set({ status: "rejected", rejectionReason: reason ?? null, updatedAt: new Date() })
+    .where(and(eq(storeRequestsTable.id, id), eq(storeRequestsTable.status, "pending")))
+    .returning();
+  if (!request) { res.status(404).json({ error: "Not found or not pending" }); return; }
+
+  await notifyStoreManager(
+    request.requestingStoreId,
+    "Store Request Rejected",
+    `Your request ${request.requestNumber} has been rejected.${reason ? ` Reason: ${reason}` : ""}`,
+    id,
+  );
+
+  const items = await db.select().from(storeRequestItemsTable).where(eq(storeRequestItemsTable.requestId, id));
+  res.json({ ...request, items });
+});
+
+router.post("/store-requests/:id/send", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+  const [request] = await db
+    .update(storeRequestsTable)
+    .set({ status: "sent", sentAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(storeRequestsTable.id, id), eq(storeRequestsTable.status, "approved")))
+    .returning();
+  if (!request) { res.status(404).json({ error: "Not found or not approved" }); return; }
+
+  await notifyStoreManager(
+    request.receivingStoreId,
+    "Items Dispatched",
+    `Items for request ${request.requestNumber} have been sent. Please mark as received when they arrive.`,
+    id,
+  );
+
+  const items = await db.select().from(storeRequestItemsTable).where(eq(storeRequestItemsTable.requestId, id));
+  res.json({ ...request, items });
+});
+
+router.post("/store-requests/:id/receive", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+  const [request] = await db
+    .update(storeRequestsTable)
+    .set({ status: "received", receivedAt: new Date(), updatedAt: new Date() })
+    .where(and(eq(storeRequestsTable.id, id), eq(storeRequestsTable.status, "sent")))
+    .returning();
+  if (!request) { res.status(404).json({ error: "Not found or not sent" }); return; }
+
+  const items = await db.select().from(storeRequestItemsTable).where(eq(storeRequestItemsTable.requestId, id));
+  res.json({ ...request, items });
+});
+
+export default router;

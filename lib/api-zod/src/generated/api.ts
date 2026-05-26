@@ -1120,6 +1120,194 @@ export const ReceiveTransferResponse = zod.object({
 })
 
 
+export const ListStoreRequestsQueryParams = zod.object({
+  "status": zod.enum(['pending', 'approved', 'rejected', 'sent', 'received']).optional(),
+  "direction": zod.enum(['incoming', 'outgoing']).optional(),
+  "page": zod.coerce.number().optional(),
+  "limit": zod.coerce.number().optional()
+})
+
+export const ListStoreRequestsResponse = zod.object({
+  "data": zod.array(zod.object({
+  "id": zod.number(),
+  "requestNumber": zod.string(),
+  "requestingStoreId": zod.number(),
+  "receivingStoreId": zod.number(),
+  "requestedById": zod.number().nullish(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'sent', 'received']),
+  "notes": zod.string().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "sentAt": zod.string().nullish(),
+  "receivedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+export const CreateStoreRequestBody = zod.object({
+  "requestingStoreId": zod.number(),
+  "receivingStoreId": zod.number(),
+  "notes": zod.string().optional(),
+  "items": zod.array(zod.object({
+  "productId": zod.number(),
+  "quantity": zod.number()
+}))
+})
+
+
+export const GetStoreRequestParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const GetStoreRequestResponse = zod.object({
+  "id": zod.number(),
+  "requestNumber": zod.string(),
+  "requestingStoreId": zod.number(),
+  "receivingStoreId": zod.number(),
+  "requestedById": zod.number().nullish(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'sent', 'received']),
+  "notes": zod.string().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "sentAt": zod.string().nullish(),
+  "receivedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).and(zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "requestId": zod.number(),
+  "productId": zod.number(),
+  "quantity": zod.string(),
+  "productName": zod.string().nullish(),
+  "productSku": zod.string().nullish()
+}))
+}))
+
+
+export const ApproveStoreRequestParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ApproveStoreRequestResponse = zod.object({
+  "id": zod.number(),
+  "requestNumber": zod.string(),
+  "requestingStoreId": zod.number(),
+  "receivingStoreId": zod.number(),
+  "requestedById": zod.number().nullish(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'sent', 'received']),
+  "notes": zod.string().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "sentAt": zod.string().nullish(),
+  "receivedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).and(zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "requestId": zod.number(),
+  "productId": zod.number(),
+  "quantity": zod.string(),
+  "productName": zod.string().nullish(),
+  "productSku": zod.string().nullish()
+}))
+}))
+
+
+export const RejectStoreRequestParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const RejectStoreRequestBody = zod.object({
+  "reason": zod.string().optional()
+})
+
+export const RejectStoreRequestResponse = zod.object({
+  "id": zod.number(),
+  "requestNumber": zod.string(),
+  "requestingStoreId": zod.number(),
+  "receivingStoreId": zod.number(),
+  "requestedById": zod.number().nullish(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'sent', 'received']),
+  "notes": zod.string().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "sentAt": zod.string().nullish(),
+  "receivedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).and(zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "requestId": zod.number(),
+  "productId": zod.number(),
+  "quantity": zod.string(),
+  "productName": zod.string().nullish(),
+  "productSku": zod.string().nullish()
+}))
+}))
+
+
+export const SendStoreRequestParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const SendStoreRequestResponse = zod.object({
+  "id": zod.number(),
+  "requestNumber": zod.string(),
+  "requestingStoreId": zod.number(),
+  "receivingStoreId": zod.number(),
+  "requestedById": zod.number().nullish(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'sent', 'received']),
+  "notes": zod.string().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "sentAt": zod.string().nullish(),
+  "receivedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).and(zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "requestId": zod.number(),
+  "productId": zod.number(),
+  "quantity": zod.string(),
+  "productName": zod.string().nullish(),
+  "productSku": zod.string().nullish()
+}))
+}))
+
+
+export const ReceiveStoreRequestParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const ReceiveStoreRequestResponse = zod.object({
+  "id": zod.number(),
+  "requestNumber": zod.string(),
+  "requestingStoreId": zod.number(),
+  "receivingStoreId": zod.number(),
+  "requestedById": zod.number().nullish(),
+  "status": zod.enum(['pending', 'approved', 'rejected', 'sent', 'received']),
+  "notes": zod.string().nullish(),
+  "rejectionReason": zod.string().nullish(),
+  "sentAt": zod.string().nullish(),
+  "receivedAt": zod.string().nullish(),
+  "createdAt": zod.string(),
+  "updatedAt": zod.string()
+}).and(zod.object({
+  "items": zod.array(zod.object({
+  "id": zod.number(),
+  "requestId": zod.number(),
+  "productId": zod.number(),
+  "quantity": zod.string(),
+  "productName": zod.string().nullish(),
+  "productSku": zod.string().nullish()
+}))
+}))
+
+
 export const ListProductionBatchesQueryParams = zod.object({
   "status": zod.enum(['in_progress', 'completed', 'cancelled']).optional(),
   "startDate": zod.coerce.string().optional(),
