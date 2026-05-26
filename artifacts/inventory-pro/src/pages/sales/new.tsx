@@ -34,7 +34,7 @@ export default function SalesNew() {
   const [items, setItems] = useState<SaleItem[]>([{ productId: "", quantity: "", unit: "PCS", unitPrice: "", discount: "0" }]);
 
   const { data: customersData } = useListCustomers({});
-  const { data: productsData } = useListProducts({ limit: 200, type: "finished" });
+  const { data: productsData } = useListProducts({ limit: 200 });
   const { data: stores } = useListStores();
   const createSale = useCreateSale();
 
