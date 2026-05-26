@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { useAuth, broadcastAuthChange } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import { useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -121,8 +121,10 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
   const logoutMutation = useLogout({
     mutation: {
       onSuccess: () => {
+        // Clear this tab's session token so the bearer header is gone
+        // before we redirect — the next page load starts fresh.
+        sessionStorage.removeItem("tab_session");
         queryClient.clear();
-        broadcastAuthChange();
         window.location.href = "/login";
       },
     },

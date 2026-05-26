@@ -5,7 +5,6 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
 import { useLogin, useGetMe } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { broadcastAuthChange } from "@/lib/auth";
 import {
   Form,
   FormControl,
@@ -46,8 +45,13 @@ export default function Login() {
 
   const loginMutation = useLogin({
     mutation: {
-      onSuccess: () => {
-        broadcastAuthChange();
+      onSuccess: (data) => {
+        // Store this tab's own session token in sessionStorage (tab-scoped),
+        // so the bearer header keeps this tab's identity independent of the
+        // shared cookie that other tabs may overwrite when they log in.
+        if (data?.token) {
+          sessionStorage.setItem("tab_session", data.token);
+        }
         queryClient.invalidateQueries();
         setLocation("/dashboard");
       },

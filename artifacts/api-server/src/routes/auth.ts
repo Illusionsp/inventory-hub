@@ -28,11 +28,30 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   req.session.userId = user.id;
   req.session.userRole = user.role;
 
+  // Save the session before reading req.sessionID so the ID is stable.
+  await new Promise<void>((resolve, reject) =>
+    req.session.save((err) => (err ? reject(err) : resolve())),
+  );
+
   const { passwordHash: _, ...safeUser } = user;
-  res.json({ user: safeUser, token: `session-${user.id}` });
+  // Return the real session ID as the token. The frontend stores it in
+  // sessionStorage (tab-scoped) and sends it as Authorization: Bearer on
+  // every request, giving each tab its own independent identity.
+  res.json({ user: safeUser, token: req.sessionID });
 });
 
 router.post("/auth/logout", async (req, res): Promise<void> => {
+  // Destroy whichever session this tab owns (bearer token takes priority
+  // over the shared cookie so the right session is always destroyed).
+  const authHeader = req.headers.authorization;
+  if (authHeader?.startsWith("Bearer ")) {
+    const sessionId = authHeader.slice(7).trim();
+    if (sessionId) {
+      req.sessionStore.destroy(sessionId, () => {});
+      res.json({ success: true });
+      return;
+    }
+  }
   req.session.destroy(() => {});
   res.json({ success: true });
 });
