@@ -1,6 +1,6 @@
 import { Router } from "express";
 import { eq, and, or, SQL } from "drizzle-orm";
-import { db, storeRequestsTable, storeRequestItemsTable, notificationsTable, usersTable, productsTable } from "@workspace/db";
+import { db, storeRequestsTable, storeRequestItemsTable, notificationsTable, usersTable, productsTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
 import { requireAuth, requirePermission } from "../lib/auth";
 
 const router = Router();
@@ -195,14 +195,55 @@ router.post("/store-requests/:id/send", requireAuth, requirePermission("can_crea
     .returning();
   if (!request) { res.status(404).json({ error: "Not found or not approved" }); return; }
 
+  const items = await db.select().from(storeRequestItemsTable).where(eq(storeRequestItemsTable.requestId, id));
+
+  // Guard: ensure no item would make sending store's stock go negative
+  for (const item of items) {
+    const [existing] = await db
+      .select()
+      .from(inventoryTable)
+      .where(and(eq(inventoryTable.productId, item.productId), eq(inventoryTable.storeId, request.receivingStoreId)));
+    const currentQty = existing ? parseFloat(String(existing.quantity)) : 0;
+    const requestedQty = parseFloat(String(item.quantity));
+    if (currentQty < requestedQty) {
+      // Roll back the status update — set back to approved
+      await db.update(storeRequestsTable).set({ status: "approved", sentAt: null, updatedAt: new Date() }).where(eq(storeRequestsTable.id, id));
+      res.status(400).json({ error: `Insufficient stock for product #${item.productId}. Available: ${currentQty}, Requested: ${requestedQty}` });
+      return;
+    }
+  }
+
+  // Deduct stock from the sending store (receivingStoreId = store that fulfils the request)
+  for (const item of items) {
+    const qty = parseFloat(String(item.quantity));
+    const [existing] = await db
+      .select()
+      .from(inventoryTable)
+      .where(and(eq(inventoryTable.productId, item.productId), eq(inventoryTable.storeId, request.receivingStoreId)));
+    if (existing) {
+      const newQty = (parseFloat(String(existing.quantity)) - qty).toString();
+      await db.update(inventoryTable).set({ quantity: newQty, updatedAt: new Date() }).where(eq(inventoryTable.id, existing.id));
+    } else {
+      await db.insert(inventoryTable).values({ productId: item.productId, storeId: request.receivingStoreId, quantity: "0" });
+    }
+    await db.insert(inventoryMovementsTable).values({
+      productId: item.productId,
+      storeId: request.receivingStoreId,
+      movementType: "transfer_out",
+      quantity: (-qty).toString(),
+      referenceId: id,
+      referenceType: "store_request",
+      createdBy: req.session.userId,
+    });
+  }
+
   await notifyStoreManager(
-    request.receivingStoreId,
+    request.requestingStoreId,
     "Items Dispatched",
     `Items for request ${request.requestNumber} have been sent. Please mark as received when they arrive.`,
     id,
   );
 
-  const items = await db.select().from(storeRequestItemsTable).where(eq(storeRequestItemsTable.requestId, id));
   res.json({ ...request, items });
 });
 
@@ -216,6 +257,31 @@ router.post("/store-requests/:id/receive", requireAuth, requirePermission("can_r
   if (!request) { res.status(404).json({ error: "Not found or not sent" }); return; }
 
   const items = await db.select().from(storeRequestItemsTable).where(eq(storeRequestItemsTable.requestId, id));
+
+  // Add stock to the requesting store (the store that made and receives the request)
+  for (const item of items) {
+    const qty = parseFloat(String(item.quantity));
+    const [existing] = await db
+      .select()
+      .from(inventoryTable)
+      .where(and(eq(inventoryTable.productId, item.productId), eq(inventoryTable.storeId, request.requestingStoreId)));
+    if (existing) {
+      const newQty = (parseFloat(String(existing.quantity)) + qty).toString();
+      await db.update(inventoryTable).set({ quantity: newQty, updatedAt: new Date() }).where(eq(inventoryTable.id, existing.id));
+    } else {
+      await db.insert(inventoryTable).values({ productId: item.productId, storeId: request.requestingStoreId, quantity: qty.toString() });
+    }
+    await db.insert(inventoryMovementsTable).values({
+      productId: item.productId,
+      storeId: request.requestingStoreId,
+      movementType: "transfer_in",
+      quantity: qty.toString(),
+      referenceId: id,
+      referenceType: "store_request",
+      createdBy: req.session.userId,
+    });
+  }
+
   res.json({ ...request, items });
 });
 
