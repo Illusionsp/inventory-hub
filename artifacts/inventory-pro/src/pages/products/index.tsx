@@ -2,7 +2,6 @@ import React, { useState } from "react";
 import {
   useListProducts,
   useListCategories,
-  useCreateProduct,
   useUpdateProduct,
   useDeleteProduct,
   getListProductsQueryKey,
@@ -44,7 +43,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Plus, Search, Trash2, Pencil } from "lucide-react";
+import { Search, Trash2, Pencil } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -104,7 +103,6 @@ export default function ProductsList() {
   const { data: categories } = useListCategories();
   const { data: productsData, isLoading } = useListProducts(params);
 
-  const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
 
@@ -119,12 +117,6 @@ export default function ProductsList() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
-  };
-
-  const openCreate = () => {
-    setEditingId(null);
-    setForm(emptyForm());
-    setFormOpen(true);
   };
 
   const openEdit = (product: any) => {
@@ -169,38 +161,20 @@ export default function ProductsList() {
       unitCost: form.unitCost ? Number(form.unitCost) : null,
     };
 
-    if (editingId !== null) {
-      updateProduct.mutate(
-        { id: editingId, data: { ...payload, isActive: form.isActive } },
-        {
-          onSuccess: () => {
-            toast({ title: "Product updated" });
-            setFormOpen(false);
-            invalidate();
-          },
-          onError: (err: any) => {
-            const msg = err?.data?.error ?? err?.message ?? "Failed to update product";
-            toast({ title: msg, variant: "destructive" });
-          },
-        }
-      );
-    } else {
-      createProduct.mutate(
-        { data: payload },
-        {
-          onSuccess: () => {
-            toast({ title: "Product added successfully" });
-            setFormOpen(false);
-            setForm(emptyForm());
-            invalidate();
-          },
-          onError: (err: any) => {
-            const msg = err?.data?.error ?? err?.message ?? "Failed to create product";
-            toast({ title: msg, variant: "destructive" });
-          },
-        }
-      );
-    }
+    updateProduct.mutate(
+      { id: editingId!, data: { ...payload, isActive: form.isActive } },
+      {
+        onSuccess: () => {
+          toast({ title: "Product updated" });
+          setFormOpen(false);
+          invalidate();
+        },
+        onError: (err: any) => {
+          const msg = err?.data?.error ?? err?.message ?? "Failed to update product";
+          toast({ title: msg, variant: "destructive" });
+        },
+      }
+    );
   };
 
   const handleDelete = () => {
@@ -223,7 +197,7 @@ export default function ProductsList() {
     );
   };
 
-  const isMutating = createProduct.isPending || updateProduct.isPending;
+  const isMutating = updateProduct.isPending;
 
   return (
     <div className="space-y-6">
@@ -234,9 +208,6 @@ export default function ProductsList() {
             Manage raw materials, semi-finished, and finished goods.
           </p>
         </div>
-        <Button onClick={openCreate}>
-          <Plus className="mr-2 h-4 w-4" /> Add Product
-        </Button>
       </div>
 
       <div className="flex flex-col sm:flex-row items-center gap-4 bg-card p-4 rounded-xl border">
@@ -365,12 +336,8 @@ export default function ProductsList() {
       <Dialog open={formOpen} onOpenChange={(o) => { if (!isMutating) setFormOpen(o); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>{editingId !== null ? "Edit Product" : "Add Product"}</DialogTitle>
-            <DialogDescription>
-              {editingId !== null
-                ? "Update product details."
-                : "Fill in the details to add a new product."}
-            </DialogDescription>
+            <DialogTitle>Edit Product</DialogTitle>
+            <DialogDescription>Update product details.</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
@@ -500,11 +467,7 @@ export default function ProductsList() {
               disabled={isMutating}
               onClick={handleSave}
             >
-              {isMutating
-                ? "Saving..."
-                : editingId !== null
-                ? "Save Changes"
-                : "Add Product"}
+              {isMutating ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>
