@@ -61,6 +61,20 @@ router.patch("/users/:id", requireAuth, async (req, res): Promise<void> => {
   res.json(safeUser);
 });
 
+router.patch("/users/:id/password", requireAuth, async (req, res): Promise<void> => {
+  const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
+  const id = parseInt(raw, 10);
+  const { password } = req.body;
+  if (!password || typeof password !== "string" || password.length < 6) {
+    res.status(400).json({ error: "Password must be at least 6 characters" });
+    return;
+  }
+  const passwordHash = await bcrypt.hash(password, 10);
+  const [user] = await db.update(usersTable).set({ passwordHash }).where(eq(usersTable.id, id)).returning();
+  if (!user) { res.status(404).json({ error: "Not found" }); return; }
+  res.json({ ok: true });
+});
+
 router.delete("/users/:id", requireAuth, async (req, res): Promise<void> => {
   const raw = Array.isArray(req.params.id) ? req.params.id[0] : req.params.id;
   const id = parseInt(raw, 10);
