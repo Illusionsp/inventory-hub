@@ -1,6 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
-import { useAuth } from "@/lib/auth";
+import { useAuth, broadcastAuthChange } from "@/lib/auth";
 import { useLogout } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
@@ -122,6 +122,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     mutation: {
       onSuccess: () => {
         queryClient.clear();
+        broadcastAuthChange();
         window.location.href = "/login";
       },
     },

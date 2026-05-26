@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
 import { useLogin, useGetMe } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { broadcastAuthChange } from "@/lib/auth";
 import {
   Form,
   FormControl,
@@ -46,6 +47,7 @@ export default function Login() {
   const loginMutation = useLogin({
     mutation: {
       onSuccess: () => {
+        broadcastAuthChange();
         queryClient.invalidateQueries();
         setLocation("/dashboard");
       },
