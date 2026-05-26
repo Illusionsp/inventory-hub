@@ -168,16 +168,20 @@ function PrintableGrn({ grn }: { grn: any }) {
       )}
 
       {/* Signature Section */}
-      <div className="grid grid-cols-3 gap-6 mt-8 pt-6 border-t border-gray-200">
+      <div style={{ display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: "24px", marginTop: "32px", paddingTop: "24px", borderTop: "2px solid #e5e7eb" }}>
         {[
           { label: "Prepared By (Store Manager)", name: grn.createdByName },
           { label: "Approved By", name: grn.approverName },
           { label: "Finance / Payment", name: grn.status === "paid" ? "Paid ✓" : "Pending" },
         ].map(({ label, name }) => (
-          <div key={label} className="text-center">
-            <div className="border-b-2 border-gray-300 h-12 mb-2"></div>
-            <p className="text-xs font-medium text-gray-700">{name || "_______________"}</p>
-            <p className="text-[10px] text-gray-400 mt-0.5">{label}</p>
+          <div key={label} style={{ textAlign: "center" }}>
+            <div style={{ borderBottom: "2px solid #d1d5db", height: "48px", marginBottom: "10px" }} />
+            <p style={{ fontSize: "13px", fontWeight: 700, color: "#111827", marginBottom: "4px" }}>
+              {name || "_______________"}
+            </p>
+            <p style={{ fontSize: "10px", color: "#6b7280", textTransform: "uppercase", letterSpacing: "0.05em" }}>
+              {label}
+            </p>
           </div>
         ))}
       </div>
