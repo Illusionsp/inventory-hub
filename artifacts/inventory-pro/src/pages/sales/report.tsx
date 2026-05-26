@@ -223,6 +223,16 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
     </tr>
   </thead>
   <tbody>${invoiceRows}</tbody>
+  <tfoot>
+    <tr class="total-row">
+      <td colspan="8">TOTAL (${data.invoices.length} invoice${data.invoices.length !== 1 ? "s" : ""})</td>
+      <td class="num">${n(data.invoices.reduce((a, i) => a + i.subtotal, 0))}</td>
+      <td class="num amber">${n(data.invoices.reduce((a, i) => a + i.vatAmount, 0))}</td>
+      <td class="num red">${n(data.invoices.reduce((a, i) => a + i.withholdingAmount, 0))}</td>
+      <td class="num">${n(data.invoices.reduce((a, i) => a + i.totalAmount, 0))}</td>
+      <td class="num red">${n(data.invoices.reduce((a, i) => a + i.balanceDue, 0))}</td>
+    </tr>
+  </tfoot>
 </table>
 
 
