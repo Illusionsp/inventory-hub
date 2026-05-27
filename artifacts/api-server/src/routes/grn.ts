@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { eq, and, SQL } from "drizzle-orm";
-import { db, grnsTable, grnItemsTable, suppliersTable, storesTable, usersTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
+import { eq, and, SQL, ilike } from "drizzle-orm";
+import { db, grnsTable, grnItemsTable, suppliersTable, storesTable, usersTable, productsTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
 import { requireAuth, requirePermission } from "../lib/auth";
 
 const router = Router();
@@ -150,18 +150,47 @@ router.post("/grns/:id/approve", requireAuth, requirePermission("can_approve_req
   const [grn] = await db.update(grnsTable).set({ status: "approved", approvedById: req.session.userId, approvedAt: new Date() }).where(eq(grnsTable.id, id)).returning();
   if (!grn) { res.status(404).json({ error: "Not found" }); return; }
 
-  // Update inventory — only for items that are linked to a product
+  // Update inventory for every item — resolve productId from free-text name if needed
   const items = await db.select().from(grnItemsTable).where(eq(grnItemsTable.grnId, id));
   for (const item of items) {
-    if (!item.productId) continue;
-    const [existing] = await db.select().from(inventoryTable).where(and(eq(inventoryTable.productId, item.productId), eq(inventoryTable.storeId, grn.storeId)));
+    let productId = item.productId;
+
+    // Free-text item: find an existing product by name (case-insensitive) or auto-create one
+    if (!productId && item.itemName) {
+      const [found] = await db
+        .select({ id: productsTable.id })
+        .from(productsTable)
+        .where(ilike(productsTable.name, item.itemName.trim()));
+
+      if (found) {
+        productId = found.id;
+      } else {
+        const [created] = await db
+          .insert(productsTable)
+          .values({
+            name: item.itemName.trim(),
+            type: "raw_material",
+            unit: item.unit,
+            reorderLevel: "0",
+          })
+          .returning({ id: productsTable.id });
+        productId = created.id;
+      }
+
+      // Back-fill the productId on the GRN item so future reads are linked
+      await db.update(grnItemsTable).set({ productId }).where(eq(grnItemsTable.id, item.id));
+    }
+
+    if (!productId) continue;
+
+    const [existing] = await db.select().from(inventoryTable).where(and(eq(inventoryTable.productId, productId), eq(inventoryTable.storeId, grn.storeId)));
     if (existing) {
       const newQty = (parseFloat(existing.quantity as string) + parseFloat(item.quantity as string)).toString();
       await db.update(inventoryTable).set({ quantity: newQty, updatedAt: new Date() }).where(eq(inventoryTable.id, existing.id));
     } else {
-      await db.insert(inventoryTable).values({ productId: item.productId, storeId: grn.storeId, quantity: item.quantity });
+      await db.insert(inventoryTable).values({ productId, storeId: grn.storeId, quantity: item.quantity });
     }
-    await db.insert(inventoryMovementsTable).values({ productId: item.productId, storeId: grn.storeId, movementType: "grn_receipt", quantity: item.quantity, referenceId: id, referenceType: "grn", createdBy: req.session.userId });
+    await db.insert(inventoryMovementsTable).values({ productId, storeId: grn.storeId, movementType: "grn_receipt", quantity: item.quantity, referenceId: id, referenceType: "grn", createdBy: req.session.userId });
   }
 
   res.json({ ...grn, supplierName: null, storeName: null, approverName: null, items });
