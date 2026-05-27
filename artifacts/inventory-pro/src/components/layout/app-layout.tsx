@@ -1,7 +1,7 @@
 import React from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
-import { useLogout } from "@workspace/api-client-react";
+import { useLogout, useListNotifications } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Sidebar,
@@ -137,6 +137,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const userRole = user?.role || "sales_officer";
 
+  const { data: notifData } = useListNotifications(
+    {},
+    { query: { refetchInterval: 30_000, queryKey: ["listNotifications", "sidebar-badge"] } },
+  );
+  const unreadCount = notifData?.unreadCount ?? 0;
+
   return (
     <SidebarProvider>
       <div className="flex min-h-screen w-full bg-background">
@@ -186,7 +192,12 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
                                 className="flex items-center gap-3 px-3 py-2 rounded-lg"
                               >
                                 <item.icon className="h-4 w-4 shrink-0" />
-                                <span className="text-sm">{item.title}</span>
+                                <span className="text-sm flex-1">{item.title}</span>
+                                {item.url === "/notifications" && unreadCount > 0 && (
+                                  <span className="ml-auto min-w-[18px] h-[18px] px-1 rounded-full bg-red-500 text-white text-[10px] font-bold flex items-center justify-center leading-none">
+                                    {unreadCount > 99 ? "99+" : unreadCount}
+                                  </span>
+                                )}
                               </Link>
                             </SidebarMenuButton>
                           </SidebarMenuItem>

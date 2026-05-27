@@ -2,6 +2,7 @@ import { Router } from "express";
 import { eq, and, SQL, ilike } from "drizzle-orm";
 import { db, productionBatchesTable, productionInputsTable, productionOutputsTable, productsTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
 import { requireAuth, requirePermission } from "../lib/auth";
+import { notifyUsers } from "../lib/notify";
 
 const router = Router();
 
@@ -176,6 +177,13 @@ router.post("/production-batches/:id/complete", requireAuth, async (req, res): P
 
   const inputs = await db.select().from(productionInputsTable).where(eq(productionInputsTable.batchId, id));
   const outputs = await db.select().from(productionOutputsTable).where(eq(productionOutputsTable.batchId, id));
+
+  await notifyUsers(["super_admin", "store_manager"], updated.stageToStoreId, {
+    type: "production_completed", title: "Batch Completed — Ready to Dispatch",
+    message: `Production batch ${updated.batchNumber} is complete. Dispatch finished products to the final store.`,
+    entityType: "production_batch", entityId: id,
+  });
+
   res.json({ ...updated, responsibleUserName: null, inputMaterials: inputs, outputProducts: outputs });
 });
 
@@ -249,6 +257,13 @@ router.post("/production-batches/:id/dispatch", requireAuth, async (req, res): P
 
   const inputs = await db.select().from(productionInputsTable).where(eq(productionInputsTable.batchId, id));
   const outputs = await db.select().from(productionOutputsTable).where(eq(productionOutputsTable.batchId, id));
+
+  await notifyUsers(["super_admin", "store_manager"], target, {
+    type: "dispatch_received", title: "Finished Products Dispatched to Your Store",
+    message: `Products from batch ${updated.batchNumber} have been dispatched and added to your store's inventory.`,
+    entityType: "production_batch", entityId: id,
+  });
+
   res.json({ ...updated, responsibleUserName: null, inputMaterials: inputs, outputProducts: outputs });
 });
 
