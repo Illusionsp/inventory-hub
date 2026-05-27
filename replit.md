@@ -19,18 +19,18 @@ A full-stack manufacturing inventory, production & sales management system. Trac
 - API: Express 5 + Pino logging
 - DB: PostgreSQL + Drizzle ORM
 - Validation: Zod (`zod/v4`), `drizzle-zod`
-- API codegen: Orval (from OpenAPI spec at `lib/api-spec/openapi.yaml`)
+- API codegen: Orval (from OpenAPI spec at `packages/api-spec/openapi.yaml`)
 - Build: esbuild (CJS bundle)
 
 ## Where things live
 
-- `lib/db/src/schema/` — Drizzle schema (14 tables)
-- `lib/api-spec/openapi.yaml` — OpenAPI spec (source of truth for API contract)
-- `lib/api-client-react/src/generated/` — generated React Query hooks + Zod schemas
-- `artifacts/api-server/src/routes/` — Express route handlers
-- `artifacts/api-server/src/app.ts` — Express app + session/cookie config
-- `artifacts/inventory-pro/src/pages/` — all frontend pages
-- `artifacts/inventory-pro/src/components/layout/app-layout.tsx` — sidebar nav
+- `packages/db/src/schema/` — Drizzle schema (14 tables)
+- `packages/api-spec/openapi.yaml` — OpenAPI spec (source of truth for API contract)
+- `packages/api-client-react/src/generated/` — generated React Query hooks + Zod schemas
+- `apps/api-server/src/routes/` — Express route handlers
+- `apps/api-server/src/app.ts` — Express app + session/cookie config
+- `apps/inventory-pro/src/pages/` — all frontend pages
+- `apps/inventory-pro/src/components/layout/app-layout.tsx` — sidebar nav
 
 ## Architecture decisions
 
