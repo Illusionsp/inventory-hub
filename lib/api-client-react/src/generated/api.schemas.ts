@@ -622,6 +622,10 @@ export interface ProductionBatch {
   /** @nullable */
   completedAt?: string | null;
   /** @nullable */
+  dispatchedToStoreId?: number | null;
+  /** @nullable */
+  dispatchedAt?: string | null;
+  /** @nullable */
   responsibleUserId?: number | null;
   /** @nullable */
   responsibleUserName?: string | null;
@@ -662,6 +666,10 @@ export interface ProductionBatchInput {
   /** @nullable */
   notes?: string | null;
   inputMaterials: ProductionInput[];
+}
+
+export interface DispatchBatchInput {
+  targetStoreId: number;
 }
 
 export interface CompleteBatchInput {

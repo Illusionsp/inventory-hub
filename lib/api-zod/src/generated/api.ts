@@ -1343,6 +1343,8 @@ export const ListProductionBatchesResponse = zod.object({
   "yieldPercent": zod.number().nullish(),
   "productionDate": zod.string().nullish(),
   "completedAt": zod.string().nullish(),
+  "dispatchedToStoreId": zod.number().nullish(),
+  "dispatchedAt": zod.string().nullish(),
   "responsibleUserId": zod.number().nullish(),
   "responsibleUserName": zod.string().nullish(),
   "notes": zod.string().nullish(),
@@ -1408,6 +1410,57 @@ export const GetProductionBatchResponse = zod.object({
   "yieldPercent": zod.number().nullish(),
   "productionDate": zod.string().nullish(),
   "completedAt": zod.string().nullish(),
+  "dispatchedToStoreId": zod.number().nullish(),
+  "dispatchedAt": zod.string().nullish(),
+  "responsibleUserId": zod.number().nullish(),
+  "responsibleUserName": zod.string().nullish(),
+  "notes": zod.string().nullish(),
+  "finalProductName": zod.string().nullish(),
+  "packageType": zod.string().nullish(),
+  "packageSize": zod.number().nullish(),
+  "packageSizeUnit": zod.string().nullish(),
+  "packagesProduced": zod.number().nullish(),
+  "inputMaterials": zod.array(zod.object({
+  "productId": zod.number(),
+  "productName": zod.string().nullish(),
+  "quantity": zod.number(),
+  "unit": zod.string()
+})).optional(),
+  "outputProducts": zod.array(zod.object({
+  "productId": zod.number(),
+  "productName": zod.string().nullish(),
+  "quantity": zod.number(),
+  "unit": zod.string()
+})).optional(),
+  "createdAt": zod.string()
+})
+
+
+export const DispatchProductionBatchParams = zod.object({
+  "id": zod.coerce.number()
+})
+
+export const DispatchProductionBatchBody = zod.object({
+  "targetStoreId": zod.number()
+})
+
+export const DispatchProductionBatchResponse = zod.object({
+  "id": zod.number(),
+  "batchNumber": zod.string(),
+  "type": zod.enum(['raw_to_semi', 'semi_to_finished']),
+  "status": zod.enum(['in_progress', 'completed', 'cancelled']),
+  "stageFromStoreId": zod.number(),
+  "stageToStoreId": zod.number(),
+  "plannedOutputQty": zod.number(),
+  "outputUnit": zod.string().optional(),
+  "actualOutputQty": zod.number().nullish(),
+  "wastageQty": zod.number().nullish(),
+  "wastagePercent": zod.number().nullish(),
+  "yieldPercent": zod.number().nullish(),
+  "productionDate": zod.string().nullish(),
+  "completedAt": zod.string().nullish(),
+  "dispatchedToStoreId": zod.number().nullish(),
+  "dispatchedAt": zod.string().nullish(),
   "responsibleUserId": zod.number().nullish(),
   "responsibleUserName": zod.string().nullish(),
   "notes": zod.string().nullish(),
@@ -1468,6 +1521,8 @@ export const CompleteProductionBatchResponse = zod.object({
   "yieldPercent": zod.number().nullish(),
   "productionDate": zod.string().nullish(),
   "completedAt": zod.string().nullish(),
+  "dispatchedToStoreId": zod.number().nullish(),
+  "dispatchedAt": zod.string().nullish(),
   "responsibleUserId": zod.number().nullish(),
   "responsibleUserName": zod.string().nullish(),
   "notes": zod.string().nullish(),

@@ -1158,6 +1158,30 @@ paths:
               schema:
                 $ref: "#/components/schemas/ProductionBatch"
 
+  /production-batches/{id}/dispatch:
+    post:
+      operationId: dispatchProductionBatch
+      tags: [production]
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/DispatchBatchInput"
+      responses:
+        "200":
+          description: Dispatched
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ProductionBatch"
+
   /production-batches/{id}/complete:
     post:
       operationId: completeProductionBatch
@@ -2347,6 +2371,10 @@ components:
           type: ["string", "null"]
         completedAt:
           type: ["string", "null"]
+        dispatchedToStoreId:
+          type: ["integer", "null"]
+        dispatchedAt:
+          type: ["string", "null"]
         responsibleUserId:
           type: ["integer", "null"]
         responsibleUserName:
@@ -2413,6 +2441,13 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ProductionInput"
+
+    DispatchBatchInput:
+      type: object
+      required: [targetStoreId]
+      properties:
+        targetStoreId:
+          type: integer
 
     CompleteBatchInput:
       type: object

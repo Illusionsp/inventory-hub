@@ -26,6 +26,7 @@ export * from './customerStatement';
 export * from './customerType';
 export * from './customerUpdate';
 export * from './dashboardSummary';
+export * from './dispatchBatchInput';
 export * from './getDashboardSalesTrendParams';
 export * from './getDashboardSalesTrendPeriod';
 export * from './getDashboardTopProductsParams';

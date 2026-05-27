@@ -31,6 +31,10 @@ export interface ProductionBatch {
   /** @nullable */
   completedAt?: string | null;
   /** @nullable */
+  dispatchedToStoreId?: number | null;
+  /** @nullable */
+  dispatchedAt?: string | null;
+  /** @nullable */
   responsibleUserId?: number | null;
   /** @nullable */
   responsibleUserName?: string | null;

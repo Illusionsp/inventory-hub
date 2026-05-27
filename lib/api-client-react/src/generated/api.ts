@@ -34,6 +34,7 @@ import type {
   CustomerStatement,
   CustomerUpdate,
   DashboardSummary,
+  DispatchBatchInput,
   GetDashboardSalesTrendParams,
   GetDashboardTopProductsParams,
   Grn,
@@ -4052,6 +4053,72 @@ export function useGetProductionBatch<TData = Awaited<ReturnType<typeof getProdu
 
 
 
+
+export const getDispatchProductionBatchUrl = (id: number,) => {
+
+
+
+
+  return `/api/production-batches/${id}/dispatch`
+}
+
+export const dispatchProductionBatch = async (id: number,
+    dispatchBatchInput: DispatchBatchInput, options?: RequestInit): Promise<ProductionBatch> => {
+
+  return customFetch<ProductionBatch>(getDispatchProductionBatchUrl(id),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      dispatchBatchInput,)
+  }
+);}
+
+
+
+
+export const getDispatchProductionBatchMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof dispatchProductionBatch>>, TError,{id: number;data: BodyType<DispatchBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof dispatchProductionBatch>>, TError,{id: number;data: BodyType<DispatchBatchInput>}, TContext> => {
+
+const mutationKey = ['dispatchProductionBatch'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof dispatchProductionBatch>>, {id: number;data: BodyType<DispatchBatchInput>}> = (props) => {
+          const {id,data} = props ?? {};
+
+          return  dispatchProductionBatch(id,data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type DispatchProductionBatchMutationResult = NonNullable<Awaited<ReturnType<typeof dispatchProductionBatch>>>
+    export type DispatchProductionBatchMutationBody = BodyType<DispatchBatchInput>
+    export type DispatchProductionBatchMutationError = ErrorType<unknown>
+
+    export const useDispatchProductionBatch = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof dispatchProductionBatch>>, TError,{id: number;data: BodyType<DispatchBatchInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof dispatchProductionBatch>>,
+        TError,
+        {id: number;data: BodyType<DispatchBatchInput>},
+        TContext
+      > => {
+      return useMutation(getDispatchProductionBatchMutationOptions(options));
+    }
 
 export const getCompleteProductionBatchUrl = (id: number,) => {
 

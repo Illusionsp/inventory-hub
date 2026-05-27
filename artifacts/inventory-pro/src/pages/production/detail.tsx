@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { useGetProductionBatch, useCompleteProductionBatch, getListProductionBatchesQueryKey, useListProducts } from "@workspace/api-client-react";
+import { useGetProductionBatch, useCompleteProductionBatch, useDispatchProductionBatch, getListProductionBatchesQueryKey, useListProducts, useListStores } from "@workspace/api-client-react";
 import { BATCH_UNITS } from "./new";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
@@ -12,7 +12,8 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Separator } from "@/components/ui/separator";
-import { ArrowLeft, CheckCircle, Package, Plus, Trash2 } from "lucide-react";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
+import { ArrowLeft, CheckCircle, Package, Plus, SendHorizonal, Trash2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface OutputProduct { productId: string; quantity: string; unit: string; }
@@ -53,9 +54,15 @@ export default function ProductionDetail({ id }: { id: string }) {
   const [packageSizeUnit, setPackageSizeUnit] = useState("g");
   const [packagesProduced, setPackagesProduced] = useState("");
 
+  // ── Dispatch state ─────────────────────────────────────────────────────────
+  const [dispatchOpen, setDispatchOpen] = useState(false);
+  const [dispatchStoreId, setDispatchStoreId] = useState("");
+
   const { data: batch, isLoading } = useGetProductionBatch(batchId, { query: { enabled: !!batchId, queryKey: ['getProductionBatch', batchId] } });
   const { data: productsData } = useListProducts({ limit: 200 });
+  const { data: storesData } = useListStores();
   const completeBatch = useCompleteProductionBatch();
+  const dispatchBatch = useDispatchProductionBatch();
 
   // Auto-calculate packages produced whenever actual output or packaging config changes
   useEffect(() => {
@@ -75,6 +82,24 @@ export default function ProductionDetail({ id }: { id: string }) {
   const removeOutput = (i: number) => setOutputs(prev => prev.filter((_, idx) => idx !== i));
   const updateOutput = (i: number, field: keyof OutputProduct, value: string) =>
     setOutputs(prev => prev.map((item, idx) => idx === i ? { ...item, [field]: value } : item));
+
+  const handleDispatch = () => {
+    if (!dispatchStoreId) { toast({ title: "Select a destination store", variant: "destructive" }); return; }
+    dispatchBatch.mutate({ id: batchId, data: { targetStoreId: parseInt(dispatchStoreId, 10) } }, {
+      onSuccess: () => {
+        toast({ title: "Products dispatched", description: "Stock has been transferred to the selected store." });
+        queryClient.invalidateQueries({ queryKey: ['getProductionBatch', batchId] });
+        queryClient.invalidateQueries({ queryKey: getListProductionBatchesQueryKey() });
+        queryClient.invalidateQueries({ queryKey: ["listInventory"] });
+        setDispatchOpen(false);
+        setDispatchStoreId("");
+      },
+      onError: (err: any) => {
+        const msg = err?.response?.data?.error ?? "Failed to dispatch";
+        toast({ title: "Error", description: msg, variant: "destructive" });
+      },
+    });
+  };
 
   const handleComplete = () => {
     if (!actualOutputQty || !wastageQty) {
@@ -383,6 +408,78 @@ export default function ProductionDetail({ id }: { id: string }) {
           </CardContent>
         </Card>
       )}
+
+      {/* ── Dispatch card ── shown when completed and not yet dispatched ─────── */}
+      {batch.status === "completed" && !batch.dispatchedAt && (
+        <Card className="border-blue-200 bg-blue-50/40 dark:bg-blue-950/20">
+          <CardContent className="flex items-center justify-between py-4 px-5">
+            <div>
+              <p className="font-semibold text-sm">Ready to Dispatch</p>
+              <p className="text-muted-foreground text-xs mt-0.5">
+                Send all finished products from this batch to the final product store.
+              </p>
+            </div>
+            <Button onClick={() => setDispatchOpen(true)} data-testid="button-dispatch">
+              <SendHorizonal className="h-4 w-4 mr-2" />Dispatch to Store
+            </Button>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Dispatched info ── */}
+      {batch.status === "completed" && batch.dispatchedAt && (
+        <Card className="border-green-200 bg-green-50/40 dark:bg-green-950/20">
+          <CardContent className="flex items-center gap-3 py-4 px-5">
+            <CheckCircle className="h-5 w-5 text-green-600 shrink-0" />
+            <div>
+              <p className="font-semibold text-sm text-green-800 dark:text-green-300">Dispatched</p>
+              <p className="text-muted-foreground text-xs mt-0.5">
+                Products sent to{" "}
+                <span className="font-medium">
+                  {(storesData ?? []).find((s: any) => s.id === batch.dispatchedToStoreId)?.name ?? `Store #${batch.dispatchedToStoreId}`}
+                </span>
+                {" "}on {new Date(batch.dispatchedAt).toLocaleDateString()}
+              </p>
+            </div>
+          </CardContent>
+        </Card>
+      )}
+
+      {/* ── Dispatch dialog ─────────────────────────────────────────────────── */}
+      <Dialog open={dispatchOpen} onOpenChange={setDispatchOpen}>
+        <DialogContent className="max-w-sm">
+          <DialogHeader>
+            <DialogTitle>Dispatch Finished Products</DialogTitle>
+          </DialogHeader>
+          <div className="space-y-4 py-2">
+            <p className="text-sm text-muted-foreground">
+              All finished products credited to this batch will be moved to the selected store's inventory.
+            </p>
+            <div className="space-y-1.5">
+              <Label>Destination Store *</Label>
+              <Select value={dispatchStoreId} onValueChange={setDispatchStoreId}>
+                <SelectTrigger data-testid="select-dispatch-store">
+                  <SelectValue placeholder="Select store" />
+                </SelectTrigger>
+                <SelectContent>
+                  {(storesData ?? [])
+                    .filter((s: any) => s.id !== (batch as any).stageToStoreId)
+                    .map((s: any) => (
+                      <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>
+                    ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setDispatchOpen(false)}>Cancel</Button>
+            <Button onClick={handleDispatch} disabled={dispatchBatch.isPending} data-testid="button-confirm-dispatch">
+              <SendHorizonal className="h-4 w-4 mr-2" />
+              {dispatchBatch.isPending ? "Dispatching…" : "Confirm Dispatch"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }

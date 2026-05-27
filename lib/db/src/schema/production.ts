@@ -19,6 +19,8 @@ export const productionBatchesTable = pgTable("production_batches", {
   completedAt: timestamp("completed_at"),
   responsibleUserId: integer("responsible_user_id"),
   notes: text("notes"),
+  dispatchedToStoreId: integer("dispatched_to_store_id"),
+  dispatchedAt: timestamp("dispatched_at"),
   finalProductName: text("final_product_name"),
   packageType: text("package_type"),
   packageSize: numeric("package_size", { precision: 10, scale: 3 }),

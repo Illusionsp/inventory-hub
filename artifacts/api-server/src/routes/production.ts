@@ -179,4 +179,77 @@ router.post("/production-batches/:id/complete", requireAuth, async (req, res): P
   res.json({ ...updated, responsibleUserName: null, inputMaterials: inputs, outputProducts: outputs });
 });
 
+// ── Dispatch finished products → target store ───────────────────────────────
+router.post("/production-batches/:id/dispatch", requireAuth, async (req, res): Promise<void> => {
+  const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+  const { targetStoreId } = req.body;
+
+  if (!targetStoreId) { res.status(400).json({ error: "targetStoreId is required" }); return; }
+
+  const [batch] = await db.select().from(productionBatchesTable).where(eq(productionBatchesTable.id, id));
+  if (!batch) { res.status(404).json({ error: "Not found" }); return; }
+  if (batch.status !== "completed") { res.status(400).json({ error: "Batch must be completed before dispatching" }); return; }
+  if (batch.dispatchedAt) { res.status(409).json({ error: "Batch has already been dispatched" }); return; }
+
+  const target = parseInt(targetStoreId.toString(), 10);
+
+  // Collect everything credited to stageToStore by this batch (production_output + packaging_output)
+  const credited = await db
+    .select()
+    .from(inventoryMovementsTable)
+    .where(and(
+      eq(inventoryMovementsTable.referenceId, id),
+      eq(inventoryMovementsTable.referenceType, "production_batch"),
+      eq(inventoryMovementsTable.storeId, batch.stageToStoreId),
+    ));
+
+  const outboundMovements = credited.filter(m =>
+    m.movementType === "production_output" || m.movementType === "packaging_output"
+  );
+
+  for (const mv of outboundMovements) {
+    const qty = parseFloat(mv.quantity as string);
+    if (qty <= 0) continue;
+
+    // Deduct from production/packaging store
+    const [fromInv] = await db.select().from(inventoryTable).where(
+      and(eq(inventoryTable.productId, mv.productId!), eq(inventoryTable.storeId, batch.stageToStoreId))
+    );
+    if (fromInv) {
+      const newQty = Math.max(0, parseFloat(fromInv.quantity as string) - qty).toString();
+      await db.update(inventoryTable).set({ quantity: newQty, updatedAt: new Date() }).where(eq(inventoryTable.id, fromInv.id));
+    }
+    await db.insert(inventoryMovementsTable).values({
+      productId: mv.productId!, storeId: batch.stageToStoreId,
+      movementType: "dispatch_out", quantity: (-qty).toString(),
+      referenceId: id, referenceType: "production_batch", createdBy: req.session.userId,
+    });
+
+    // Add to target store
+    const [toInv] = await db.select().from(inventoryTable).where(
+      and(eq(inventoryTable.productId, mv.productId!), eq(inventoryTable.storeId, target))
+    );
+    if (toInv) {
+      const newQty = (parseFloat(toInv.quantity as string) + qty).toString();
+      await db.update(inventoryTable).set({ quantity: newQty, updatedAt: new Date() }).where(eq(inventoryTable.id, toInv.id));
+    } else {
+      await db.insert(inventoryTable).values({ productId: mv.productId!, storeId: target, quantity: qty.toString() });
+    }
+    await db.insert(inventoryMovementsTable).values({
+      productId: mv.productId!, storeId: target,
+      movementType: "dispatch_in", quantity: qty.toString(),
+      referenceId: id, referenceType: "production_batch", createdBy: req.session.userId,
+    });
+  }
+
+  const [updated] = await db.update(productionBatchesTable)
+    .set({ dispatchedToStoreId: target, dispatchedAt: new Date() })
+    .where(eq(productionBatchesTable.id, id))
+    .returning();
+
+  const inputs = await db.select().from(productionInputsTable).where(eq(productionInputsTable.batchId, id));
+  const outputs = await db.select().from(productionOutputsTable).where(eq(productionOutputsTable.batchId, id));
+  res.json({ ...updated, responsibleUserName: null, inputMaterials: inputs, outputProducts: outputs });
+});
+
 export default router;
