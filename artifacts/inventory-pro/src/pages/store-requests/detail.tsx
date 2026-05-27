@@ -42,7 +42,7 @@ export default function StoreRequestDetail({ id }: { id: string }) {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
 
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectReason, setRejectReason] = useState("");
@@ -82,8 +82,14 @@ export default function StoreRequestDetail({ id }: { id: string }) {
   const isRequestingStore = userStoreId === request.requestingStoreId;
   const isSuperAdmin = user?.role === "super_admin";
 
-  const canApproveReject = (isReceivingStore || isSuperAdmin) && request.status === "pending";
-  const canSend = (isRequestingStore || isSuperAdmin) && request.status === "approved";
+  const canApproveReject =
+    hasPermission("can_approve_store_requests") &&
+    (isSuperAdmin || isReceivingStore) &&
+    request.status === "pending";
+  const canSend =
+    hasPermission("can_approve_dispatch") &&
+    (isSuperAdmin || isRequestingStore) &&
+    request.status === "approved";
   const canReceive = (isReceivingStore || isSuperAdmin) && request.status === "sent";
 
   return (

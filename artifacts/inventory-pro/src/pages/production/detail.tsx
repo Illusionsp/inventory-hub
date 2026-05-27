@@ -1,6 +1,7 @@
 import { useState, useEffect } from "react";
 import { useGetProductionBatch, useCompleteProductionBatch, useDispatchProductionBatch, getListProductionBatchesQueryKey, useListProducts, useListStores } from "@workspace/api-client-react";
 import { BATCH_UNITS } from "./new";
+import { useAuth } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -39,6 +40,7 @@ export default function ProductionDetail({ id }: { id: string }) {
   const batchId = parseInt(id, 10);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
 
   // ── Complete-batch form state ──────────────────────────────────────────────
@@ -381,10 +383,12 @@ export default function ProductionDetail({ id }: { id: string }) {
               </div>
             )}
 
-            <Button onClick={handleComplete} disabled={completeBatch.isPending} className="w-full" data-testid="button-complete">
-              <CheckCircle className="h-4 w-4 mr-2" />
-              {completeBatch.isPending ? "Completing..." : "Complete Batch"}
-            </Button>
+            {hasPermission("can_approve_production") && (
+              <Button onClick={handleComplete} disabled={completeBatch.isPending} className="w-full" data-testid="button-complete">
+                <CheckCircle className="h-4 w-4 mr-2" />
+                {completeBatch.isPending ? "Completing..." : "Complete Batch"}
+              </Button>
+            )}
           </CardContent>
         </Card>
       )}
@@ -409,8 +413,8 @@ export default function ProductionDetail({ id }: { id: string }) {
         </Card>
       )}
 
-      {/* ── Dispatch card ── shown when completed and not yet dispatched ─────── */}
-      {batch.status === "completed" && !batch.dispatchedAt && (
+      {/* ── Dispatch card ── shown when completed, not yet dispatched, and user can dispatch ── */}
+      {batch.status === "completed" && !batch.dispatchedAt && hasPermission("can_approve_dispatch") && (
         <Card className="border-blue-200 bg-blue-50/40 dark:bg-blue-950/20">
           <CardContent className="flex items-center justify-between py-4 px-5">
             <div>

@@ -80,7 +80,7 @@ router.post("/grns", requireAuth, async (req, res): Promise<void> => {
     });
   }
 
-  await notifyByPermission("can_approve_requests", grn.storeId, {
+  await notifyByPermission("can_approve_grn", grn.storeId, {
     type: "grn_pending", title: "New GRN Created — Awaiting Approval",
     message: `GRN ${grn.grnNumber} has been created and requires your approval.`,
     entityType: "grn", entityId: grn.id,
@@ -150,7 +150,7 @@ router.post("/grns/:id/submit", requireAuth, async (req, res): Promise<void> => 
   const [grn] = await db.update(grnsTable).set({ status: "pending_approval" }).where(eq(grnsTable.id, id)).returning();
   if (!grn) { res.status(404).json({ error: "Not found" }); return; }
 
-  await notifyByPermission("can_approve_requests", grn.storeId, {
+  await notifyByPermission("can_approve_grn", grn.storeId, {
     type: "grn_pending", title: "GRN Submitted — Awaiting Your Approval",
     message: `GRN ${grn.grnNumber} has been submitted for approval. Please review and approve or reject.`,
     entityType: "grn", entityId: grn.id,
@@ -159,7 +159,7 @@ router.post("/grns/:id/submit", requireAuth, async (req, res): Promise<void> => 
   res.json({ ...grn, supplierName: null, storeName: null, approverName: null, items: [] });
 });
 
-router.post("/grns/:id/approve", requireAuth, requirePermission("can_approve_requests"), async (req, res): Promise<void> => {
+router.post("/grns/:id/approve", requireAuth, requirePermission("can_approve_grn"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const [grn] = await db.update(grnsTable).set({ status: "approved", approvedById: req.session.userId, approvedAt: new Date() }).where(eq(grnsTable.id, id)).returning();
   if (!grn) { res.status(404).json({ error: "Not found" }); return; }
@@ -216,7 +216,7 @@ router.post("/grns/:id/approve", requireAuth, requirePermission("can_approve_req
   res.json({ ...grn, supplierName: null, storeName: null, approverName: null, items });
 });
 
-router.post("/grns/:id/reject", requireAuth, requirePermission("can_approve_requests"), async (req, res): Promise<void> => {
+router.post("/grns/:id/reject", requireAuth, requirePermission("can_approve_grn"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const { notes } = req.body;
   const [grn] = await db.update(grnsTable).set({ status: "rejected", rejectionReason: notes ?? null }).where(eq(grnsTable.id, id)).returning();

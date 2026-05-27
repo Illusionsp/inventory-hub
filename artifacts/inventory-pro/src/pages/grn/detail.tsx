@@ -1,6 +1,7 @@
 import { useGetGrn, useApproveGrn, useRejectGrn, useMarkGrnPaid, useSubmitGrn, getListGrnsQueryKey, getGetGrnQueryKey } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
+import { useAuth } from "@/lib/auth";
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -186,6 +187,7 @@ export default function GrnDetail({ id }: { id: string }) {
   const grnId = parseInt(id, 10);
   const [, setLocation] = useLocation();
   const { toast } = useToast();
+  const { hasPermission } = useAuth();
   const queryClient = useQueryClient();
   const [rejectOpen, setRejectOpen] = useState(false);
   const [rejectNotes, setRejectNotes] = useState("");
@@ -387,7 +389,7 @@ export default function GrnDetail({ id }: { id: string }) {
               <Send className="h-4 w-4 mr-2" /> Submit for Approval
             </Button>
           )}
-          {grn.status === "pending_approval" && (
+          {grn.status === "pending_approval" && hasPermission("can_approve_grn") && (
             <>
               <Button variant="destructive" size="sm" onClick={() => setRejectOpen(true)}>
                 <XCircle className="h-4 w-4 mr-2" /> Reject

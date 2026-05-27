@@ -44,20 +44,33 @@ const ROLE_LABEL: Record<string, string> = {
 // ── Permission definitions (mirrors lib/db/src/permissions.ts) ──────────────
 
 const PERMISSION_LIST = [
-  { key: "can_create_store_requests", label: "Create Store Requests", description: "Can create and dispatch store-to-store requests" },
-  { key: "can_approve_requests", label: "Approve / Reject Requests", description: "Can approve or reject GRNs, transfers, and store requests" },
-  { key: "can_receive_items", label: "Receive Items", description: "Can mark GRNs and store requests as received" },
-  { key: "can_view_request_status", label: "View Request Status", description: "Can view status of all pending requests" },
-  { key: "can_create_batch_production", label: "Create Production Batches", description: "Can start new production batch runs" },
-  { key: "can_manage_inventory", label: "Manage Inventory", description: "Can add, edit, or adjust inventory stock levels" },
-  { key: "can_view_reports", label: "View Reports & Analytics", description: "Can access sales reports and dashboard analytics" },
+  // ── Operational permissions ────────────────────────────────────────────
+  { key: "can_create_store_requests",  label: "Create Store Requests",       description: "Can create store-to-store requests" },
+  { key: "can_receive_items",          label: "Receive Items",               description: "Can mark GRNs and store requests as received" },
+  { key: "can_view_request_status",    label: "View Request Status",         description: "Can view status of all pending requests" },
+  { key: "can_create_batch_production",label: "Create Production Batches",   description: "Can start new production batch runs" },
+  { key: "can_manage_inventory",       label: "Manage Inventory",            description: "Can add, edit, or adjust inventory stock levels" },
+  { key: "can_view_reports",           label: "View Reports & Analytics",    description: "Can access sales reports and dashboard analytics" },
+  // ── Module-specific approval permissions ──────────────────────────────
+  { key: "can_approve_grn",            label: "Approve GRN",                 description: "Can approve or reject Goods Received Notes" },
+  { key: "can_approve_store_requests", label: "Approve Store Requests",      description: "Can approve or reject store-to-store transfer requests" },
+  { key: "can_approve_dispatch",       label: "Approve Dispatch",            description: "Can dispatch items to fulfil a store request or production batch" },
+  { key: "can_approve_production",     label: "Approve Production Batches",  description: "Can complete a production batch (record actual output & wastage)" },
 ] as const;
 
 const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   super_admin: PERMISSION_LIST.map(p => p.key),
-  store_manager: ["can_create_store_requests", "can_receive_items", "can_view_request_status", "can_manage_inventory", "can_view_reports"],
-  approver: ["can_approve_requests", "can_view_request_status", "can_view_reports"],
-  production_manager: ["can_create_batch_production", "can_view_request_status", "can_view_reports"],
+  store_manager: [
+    "can_create_store_requests", "can_receive_items", "can_view_request_status",
+    "can_manage_inventory", "can_view_reports", "can_create_batch_production",
+    "can_approve_store_requests", "can_approve_dispatch",
+  ],
+  approver: [
+    "can_approve_grn", "can_approve_store_requests",
+    "can_approve_dispatch", "can_approve_production",
+    "can_view_request_status", "can_view_reports",
+  ],
+  production_manager: ["can_create_batch_production", "can_approve_production", "can_view_request_status", "can_view_reports"],
   finance_officer: ["can_view_reports", "can_view_request_status"],
   sales_officer: ["can_view_reports"],
 };

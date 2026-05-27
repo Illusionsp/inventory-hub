@@ -89,7 +89,7 @@ router.post("/store-requests", requireAuth, requirePermission("can_create_store_
     .from(storeRequestItemsTable)
     .where(eq(storeRequestItemsTable.requestId, request.id));
 
-  await notifyByPermission("can_approve_requests", receivingStoreId, {
+  await notifyByPermission("can_approve_store_requests", receivingStoreId, {
     type: "store_request", title: "New Store Request — Awaiting Your Approval",
     message: `Request ${requestNumber} has been submitted by another store and requires your approval.`,
     entityType: "store_request", entityId: request.id,
@@ -120,7 +120,7 @@ router.get("/store-requests/:id", requireAuth, async (req, res): Promise<void> =
   res.json({ ...request, items });
 });
 
-router.post("/store-requests/:id/approve", requireAuth, requirePermission("can_approve_requests"), async (req, res): Promise<void> => {
+router.post("/store-requests/:id/approve", requireAuth, requirePermission("can_approve_store_requests"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const [request] = await db
     .update(storeRequestsTable)
@@ -139,7 +139,7 @@ router.post("/store-requests/:id/approve", requireAuth, requirePermission("can_a
   res.json({ ...request, items });
 });
 
-router.post("/store-requests/:id/reject", requireAuth, requirePermission("can_approve_requests"), async (req, res): Promise<void> => {
+router.post("/store-requests/:id/reject", requireAuth, requirePermission("can_approve_store_requests"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const { reason } = req.body;
   const [request] = await db
@@ -159,7 +159,7 @@ router.post("/store-requests/:id/reject", requireAuth, requirePermission("can_ap
   res.json({ ...request, items });
 });
 
-router.post("/store-requests/:id/send", requireAuth, requirePermission("can_create_store_requests"), async (req, res): Promise<void> => {
+router.post("/store-requests/:id/send", requireAuth, requirePermission("can_approve_dispatch"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const [request] = await db
     .update(storeRequestsTable)

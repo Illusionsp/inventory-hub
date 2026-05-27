@@ -58,7 +58,7 @@ router.get("/transfers/:id", requireAuth, async (req, res): Promise<void> => {
   res.json({ ...transfer, fromStoreName: null, toStoreName: null, items });
 });
 
-router.post("/transfers/:id/approve", requireAuth, requirePermission("can_approve_requests"), async (req, res): Promise<void> => {
+router.post("/transfers/:id/approve", requireAuth, requirePermission("can_approve_store_requests"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const { notes } = req.body;
   const items = await db.select().from(transferItemsTable).where(eq(transferItemsTable.transferId, id));
@@ -70,7 +70,7 @@ router.post("/transfers/:id/approve", requireAuth, requirePermission("can_approv
   res.json({ ...t, fromStoreName: null, toStoreName: null, items });
 });
 
-router.post("/transfers/:id/reject", requireAuth, requirePermission("can_approve_requests"), async (req, res): Promise<void> => {
+router.post("/transfers/:id/reject", requireAuth, requirePermission("can_approve_store_requests"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const { notes } = req.body;
   const [t] = await db.update(transfersTable).set({ status: "rejected", rejectionReason: notes ?? null }).where(eq(transfersTable.id, id)).returning();

@@ -76,7 +76,7 @@ function convertUnit(qty: number, fromUnit: string, toUnit: string): number {
   return qty; // no conversion known — assume same unit
 }
 
-router.post("/production-batches/:id/complete", requireAuth, async (req, res): Promise<void> => {
+router.post("/production-batches/:id/complete", requireAuth, requirePermission("can_approve_production"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const { actualOutputQty, wastageQty, notes, outputProducts, finalProductName, packageType, packageSize, packageSizeUnit, packagesProduced } = req.body;
   const [batch] = await db.select().from(productionBatchesTable).where(eq(productionBatchesTable.id, id));
@@ -178,7 +178,7 @@ router.post("/production-batches/:id/complete", requireAuth, async (req, res): P
   const inputs = await db.select().from(productionInputsTable).where(eq(productionInputsTable.batchId, id));
   const outputs = await db.select().from(productionOutputsTable).where(eq(productionOutputsTable.batchId, id));
 
-  await notifyByPermission("can_create_batch_production", updated.stageToStoreId, {
+  await notifyByPermission("can_approve_dispatch", updated.stageToStoreId, {
     type: "production_completed", title: "Batch Completed — Ready to Dispatch",
     message: `Production batch ${updated.batchNumber} is complete and ready to be dispatched to the final product store.`,
     entityType: "production_batch", entityId: id,
@@ -188,7 +188,7 @@ router.post("/production-batches/:id/complete", requireAuth, async (req, res): P
 });
 
 // ── Dispatch finished products → target store ───────────────────────────────
-router.post("/production-batches/:id/dispatch", requireAuth, async (req, res): Promise<void> => {
+router.post("/production-batches/:id/dispatch", requireAuth, requirePermission("can_approve_dispatch"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const { targetStoreId } = req.body;
 
