@@ -41,6 +41,38 @@ router.post("/auth/login", async (req, res): Promise<void> => {
   res.json({ user: safeUser, token: req.sessionID });
 });
 
+/**
+ * Fork the current session so this tab gets its own independent session ID.
+ * Called by tabs that loaded via the shared cookie (no Bearer token in
+ * sessionStorage).  Without this, every such tab shares the same session, so
+ * logging out one tab destroys the session for all of them.
+ *
+ * session.regenerate() creates a brand-new session, copies over the userId,
+ * and invalidates the old session in the store — giving this tab a unique ID
+ * that cannot be disrupted by another tab's logout.
+ */
+router.post("/auth/fork", requireAuth, async (req, res): Promise<void> => {
+  const userId = req.session.userId!;
+  const userRole = req.session.userRole!;
+  const userPermissions = req.session.userPermissions ?? [];
+
+  req.session.regenerate(async (err) => {
+    if (err) {
+      res.status(500).json({ error: "Session fork failed" });
+      return;
+    }
+    req.session.userId = userId;
+    req.session.userRole = userRole;
+    req.session.userPermissions = userPermissions;
+
+    await new Promise<void>((resolve, reject) =>
+      req.session.save((e) => (e ? reject(e) : resolve())),
+    );
+
+    res.json({ sessionId: req.sessionID });
+  });
+});
+
 router.post("/auth/logout", async (req, res): Promise<void> => {
   // Destroy whichever session this tab owns (bearer token takes priority
   // over the shared cookie so the right session is always destroyed).
