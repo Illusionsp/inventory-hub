@@ -225,7 +225,7 @@ export default function StoreRequestDetail({ id }: { id: string }) {
           <Table>
             <TableHeader>
               <TableRow>
-                <TableHead>Product</TableHead>
+                <TableHead>Item</TableHead>
                 <TableHead>SKU</TableHead>
                 <TableHead className="text-right">Quantity</TableHead>
                 <TableHead>Unit</TableHead>

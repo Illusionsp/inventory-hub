@@ -152,15 +152,15 @@ export default function StoreRequestNew() {
             {items.map((item, i) => (
               <div key={i} className="grid grid-cols-[1fr_120px_120px_40px] gap-3 items-end">
                 <div className="space-y-1.5">
-                  {i === 0 && <Label>Product</Label>}
-                  <Select value={item.productId} onValueChange={v => updateItem(i, "productId", v)}>
+                  {i === 0 && <Label>Item</Label>}
+                  <Select value={item.productId || undefined} onValueChange={v => updateItem(i, "productId", v)}>
                     <SelectTrigger data-testid={`select-product-${i}`}>
-                      <SelectValue placeholder="Select product" />
+                      <SelectValue placeholder="Select item" />
                     </SelectTrigger>
                     <SelectContent>
                       {(productsData?.data ?? []).map((p: any) => (
                         <SelectItem key={p.id} value={String(p.id)}>
-                          {p.name} ({p.sku})
+                          {p.name}{p.sku ? ` (${p.sku})` : ""}
                         </SelectItem>
                       ))}
                     </SelectContent>
