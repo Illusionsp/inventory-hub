@@ -1,7 +1,6 @@
 import React, { createContext, useContext, ReactNode, useEffect, useState } from "react";
 import { useGetMe, getGetMeQueryKey, User } from "@workspace/api-client-react";
 import { useLocation } from "wouter";
-import { useQueryClient } from "@tanstack/react-query";
 
 interface AuthContextType {
   user: User | null;
@@ -13,11 +12,7 @@ interface AuthContextType {
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-/** Shared channel name used across all auth-aware components. */
-export const AUTH_BROADCAST_CHANNEL = "raflos_auth";
-
 export function AuthProvider({ children }: { children: ReactNode }) {
-  const queryClient = useQueryClient();
   const { data: user, isLoading, isFetching } = useGetMe({
     query: {
       queryKey: getGetMeQueryKey(),
@@ -49,12 +44,10 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Session fork: when this tab has no Bearer token (loaded via the shared
    * cookie), call /auth/fork to get a brand-new independent session ID.
    *
-   * Without this, multiple tabs that loaded via cookie all share the same
-   * session.  If any one of them logs out (destroying that shared session),
-   * every other tab silently loses auth on its next request.
-   *
-   * /auth/fork calls session.regenerate() on the server, giving this tab a
-   * unique session that cannot be disrupted by another tab's logout.
+   * /auth/fork writes a fresh session directly to the store (does NOT call
+   * session.regenerate(), which would destroy the shared cookie session and
+   * cause other unforked tabs to see 401s).  Each tab ends up with its own
+   * isolated Bearer session that cannot be disrupted by another tab's logout.
    */
   useEffect(() => {
     if (!user) return;
@@ -76,37 +69,18 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [user]);
 
   /**
-   * Cross-tab auth sync via BroadcastChannel.
-   *
-   * Only unisolated tabs (no Bearer token yet) need to react to other tabs'
-   * login/logout events — they rely on the shared cookie so they must refresh
-   * when that cookie changes.  Tabs that already have their own Bearer token
-   * are fully isolated and should NOT re-fetch: doing so is unnecessary and
-   * can cause a visible flash if the refetch briefly clears the user.
-   */
-  useEffect(() => {
-    if (typeof BroadcastChannel === "undefined") return;
-    const channel = new BroadcastChannel(AUTH_BROADCAST_CHANNEL);
-    channel.onmessage = () => {
-      if (!sessionStorage.getItem("tab_session")) {
-        queryClient.invalidateQueries({ queryKey: getGetMeQueryKey() });
-      }
-    };
-    return () => channel.close();
-  }, [queryClient]);
-
-  /**
    * Redirect to /login only after:
    *   1. The first auth check has completed (isInitialized), AND
    *   2. No background refetch is running (isFetching), AND
    *   3. There is definitely no authenticated user.
    *
+   * Uses Wouter's `location` (relative to the router's base) rather than
+   * window.location.pathname so the check works correctly regardless of
+   * what base URL the app is mounted at.
+   *
    * Gating on isInitialized prevents the redirect flash that would otherwise
    * occur on page load before the session cookie is verified.
    */
-  // Uses Wouter's `location` (relative to the router's base) rather than
-  // window.location.pathname so the check works correctly regardless of
-  // what base URL the app is mounted at.
   useEffect(() => {
     if (!isInitialized) return;
     if (isFetching) return;

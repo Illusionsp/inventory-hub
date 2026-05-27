@@ -5,7 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
 import { useLogin } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AUTH_BROADCAST_CHANNEL, useAuth } from "@/lib/auth";
+import { useAuth } from "@/lib/auth";
 import {
   Form,
   FormControl,
@@ -16,7 +16,6 @@ import {
 } from "@/components/ui/form";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
-import { Activity } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 const loginSchema = z.object({
@@ -41,9 +40,11 @@ export default function Login() {
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
+    // Empty defaults — do not pre-fill credentials.
+    // autoComplete attributes on the inputs handle browser password manager behaviour.
     defaultValues: {
-      email: "admin@inventorypro.com",
-      password: "admin123",
+      email: "",
+      password: "",
     },
   });
 
@@ -52,16 +53,9 @@ export default function Login() {
       onSuccess: (data) => {
         // Store this tab's own session token in sessionStorage (tab-scoped),
         // so the bearer header keeps this tab's identity independent of the
-        // shared cookie that other tabs may overwrite when they log in.
+        // shared cookie that other tabs use.
         if (data?.token) {
           sessionStorage.setItem("tab_session", data.token);
-        }
-        // Notify any other open tabs that auth state changed so they can
-        // immediately refetch /auth/me with their own bearer token.
-        if (typeof BroadcastChannel !== "undefined") {
-          const ch = new BroadcastChannel(AUTH_BROADCAST_CHANNEL);
-          ch.postMessage({ type: "auth_change", event: "login" });
-          ch.close();
         }
         queryClient.invalidateQueries();
         setLocation("/dashboard");
@@ -121,7 +115,17 @@ export default function Login() {
           </div>
 
           <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/*
+              autoComplete="off" on the form suppresses browser form autofill.
+              Individual inputs carry specific values so password managers can
+              still offer to save credentials after a successful login, but will
+              not pre-fill on page load.
+            */}
+            <form
+              onSubmit={form.handleSubmit(onSubmit)}
+              className="space-y-6"
+              autoComplete="off"
+            >
               <FormField
                 control={form.control}
                 name="email"
@@ -129,7 +133,12 @@ export default function Login() {
                   <FormItem>
                     <FormLabel>Email</FormLabel>
                     <FormControl>
-                      <Input placeholder="Enter your email" {...field} />
+                      <Input
+                        type="email"
+                        placeholder="Enter your email"
+                        autoComplete="username"
+                        {...field}
+                      />
                     </FormControl>
                     <FormMessage />
                   </FormItem>
@@ -145,6 +154,7 @@ export default function Login() {
                       <Input
                         type="password"
                         placeholder="Enter your password"
+                        autoComplete="current-password"
                         {...field}
                       />
                     </FormControl>
