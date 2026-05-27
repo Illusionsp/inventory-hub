@@ -81,7 +81,7 @@ export default function Login() {
               M
             </div>
             <span className="text-2xl font-bold tracking-tight">
-              Multi-Store Inventory Pro
+              RAFLOS Softwares
             </span>
           </div>
           <h1 className="text-4xl font-bold tracking-tight mb-4 max-w-md">
@@ -92,7 +92,7 @@ export default function Login() {
           </p>
         </div>
         <div className="text-sm text-sidebar-foreground/50">
-          &copy; {new Date().getFullYear()} Multi-Store Inventory Pro. All rights reserved.
+          &copy; {new Date().getFullYear()} RAFLOS Softwares. All rights reserved.
         </div>
       </div>
 

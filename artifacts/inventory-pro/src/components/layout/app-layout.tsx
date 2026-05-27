@@ -146,7 +146,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
               </div>
               <div>
                 <span className="text-base font-bold tracking-tight text-sidebar-foreground">
-                  Inventory Pro
+                  RAFLOS Softwares
                 </span>
                 <p className="text-xs text-sidebar-foreground/50 leading-none mt-0.5">Multi-Store</p>
               </div>
