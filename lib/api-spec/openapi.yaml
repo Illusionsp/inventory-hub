@@ -1522,6 +1522,48 @@ paths:
         "200":
           description: All marked as read
 
+  # OPENING STOCK
+  /opening-stock:
+    get:
+      operationId: listOpeningStock
+      tags: [opening-stock]
+      parameters:
+        - name: storeId
+          in: query
+          schema:
+            type: integer
+        - name: page
+          in: query
+          schema:
+            type: integer
+        - name: limit
+          in: query
+          schema:
+            type: integer
+      responses:
+        "200":
+          description: List of opening stock entries
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpeningStockList"
+    post:
+      operationId: createOpeningStock
+      tags: [opening-stock]
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/OpeningStockInput"
+      responses:
+        "201":
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/OpeningStock"
+
   # AUDIT
   /audit-logs:
     get:
@@ -2823,6 +2865,74 @@ components:
           type: integer
 
     # AUDIT
+    # OPENING STOCK
+    OpeningStock:
+      type: object
+      required: [id, storeId, itemName, quantity, unit, stockType, entryDate, createdAt]
+      properties:
+        id:
+          type: integer
+        storeId:
+          type: integer
+        productId:
+          type: ["integer", "null"]
+        itemName:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        stockType:
+          type: string
+          enum: [raw_material, semi_finished, finished_good]
+        batchDetails:
+          type: ["string", "null"]
+        entryDate:
+          type: string
+        notes:
+          type: ["string", "null"]
+        createdBy:
+          type: ["integer", "null"]
+        createdAt:
+          type: string
+
+    OpeningStockList:
+      type: object
+      required: [data, total, page, limit]
+      properties:
+        data:
+          type: array
+          items:
+            $ref: "#/components/schemas/OpeningStock"
+        total:
+          type: integer
+        page:
+          type: integer
+        limit:
+          type: integer
+
+    OpeningStockInput:
+      type: object
+      required: [storeId, itemName, quantity, unit, entryDate]
+      properties:
+        storeId:
+          type: integer
+        itemName:
+          type: string
+        quantity:
+          type: number
+        unit:
+          type: string
+        stockType:
+          type: string
+          enum: [raw_material, semi_finished, finished_good]
+        batchDetails:
+          type: ["string", "null"]
+        entryDate:
+          type: string
+        notes:
+          type: ["string", "null"]
+
     AuditLog:
       type: object
       required: [id, userId, action, entityType, createdAt]

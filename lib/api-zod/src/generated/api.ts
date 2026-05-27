@@ -1823,6 +1823,45 @@ export const MarkNotificationReadResponse = zod.object({
 })
 
 
+export const ListOpeningStockQueryParams = zod.object({
+  "storeId": zod.coerce.number().optional(),
+  "page": zod.coerce.number().optional(),
+  "limit": zod.coerce.number().optional()
+})
+
+export const ListOpeningStockResponse = zod.object({
+  "data": zod.array(zod.object({
+  "id": zod.number(),
+  "storeId": zod.number(),
+  "productId": zod.number().nullish(),
+  "itemName": zod.string(),
+  "quantity": zod.number(),
+  "unit": zod.string(),
+  "stockType": zod.enum(['raw_material', 'semi_finished', 'finished_good']),
+  "batchDetails": zod.string().nullish(),
+  "entryDate": zod.string(),
+  "notes": zod.string().nullish(),
+  "createdBy": zod.number().nullish(),
+  "createdAt": zod.string()
+})),
+  "total": zod.number(),
+  "page": zod.number(),
+  "limit": zod.number()
+})
+
+
+export const CreateOpeningStockBody = zod.object({
+  "storeId": zod.number(),
+  "itemName": zod.string(),
+  "quantity": zod.number(),
+  "unit": zod.string(),
+  "stockType": zod.enum(['raw_material', 'semi_finished', 'finished_good']).optional(),
+  "batchDetails": zod.string().nullish(),
+  "entryDate": zod.string(),
+  "notes": zod.string().nullish()
+})
+
+
 export const ListAuditLogsQueryParams = zod.object({
   "userId": zod.coerce.number().optional(),
   "entityType": zod.coerce.string().optional(),

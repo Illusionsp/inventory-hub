@@ -13,3 +13,4 @@ export * from "./sales";
 export * from "./payments";
 export * from "./notifications";
 export * from "./audit";
+export * from "./opening-stock";

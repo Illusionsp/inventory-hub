@@ -35,6 +35,7 @@ import Users from "@/pages/users/index";
 import Stores from "@/pages/stores/index";
 import Notifications from "@/pages/notifications/index";
 import AuditLogs from "@/pages/audit/index";
+import OpeningStock from "@/pages/opening-stock/index";
 
 /**
  * When a mutation (write operation) returns 401, it means the user's session
@@ -130,6 +131,7 @@ function Router() {
       <Route path="/stores">{() => <ProtectedRoute component={Stores} />}</Route>
       <Route path="/notifications">{() => <ProtectedRoute component={Notifications} />}</Route>
       <Route path="/audit">{() => <ProtectedRoute component={AuditLogs} />}</Route>
+      <Route path="/opening-stock">{() => <ProtectedRoute component={OpeningStock} />}</Route>
       <Route component={NotFound} />
     </Switch>
   );

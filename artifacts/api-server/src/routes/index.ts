@@ -18,6 +18,7 @@ import dashboardRouter from "./dashboard";
 import notificationsRouter from "./notifications";
 import auditRouter from "./audit";
 import reportsRouter from "./reports";
+import openingStockRouter from "./opening-stock";
 
 const router: IRouter = Router();
 
@@ -40,5 +41,6 @@ router.use(dashboardRouter);
 router.use(notificationsRouter);
 router.use(auditRouter);
 router.use(reportsRouter);
+router.use(openingStockRouter);
 
 export default router;

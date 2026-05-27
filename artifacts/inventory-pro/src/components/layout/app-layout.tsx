@@ -35,6 +35,7 @@ import {
   Store,
   Users,
   SendHorizonal,
+  PackagePlus,
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
@@ -69,6 +70,7 @@ const navGroups: NavGroup[] = [
   {
     title: "Inventory & Production",
     items: [
+      { title: "Opening Stock", icon: PackagePlus, url: "/opening-stock", roles: ["super_admin", "store_manager"] },
       { title: "Stock Levels", icon: Package, url: "/inventory", roles: ["super_admin", "store_manager", "approver"] },
       { title: "Movements", icon: ArrowRightLeft, url: "/inventory/movements", roles: ["super_admin", "store_manager"] },
       { title: "Production Batches", icon: Factory, url: "/production", roles: ["super_admin", "store_manager"] },

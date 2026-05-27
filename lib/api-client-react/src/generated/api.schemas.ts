@@ -925,6 +925,63 @@ export interface NotificationList {
   unreadCount: number;
 }
 
+export type OpeningStockStockType = typeof OpeningStockStockType[keyof typeof OpeningStockStockType];
+
+
+export const OpeningStockStockType = {
+  raw_material: 'raw_material',
+  semi_finished: 'semi_finished',
+  finished_good: 'finished_good',
+} as const;
+
+export interface OpeningStock {
+  id: number;
+  storeId: number;
+  /** @nullable */
+  productId?: number | null;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  stockType: OpeningStockStockType;
+  /** @nullable */
+  batchDetails?: string | null;
+  entryDate: string;
+  /** @nullable */
+  notes?: string | null;
+  /** @nullable */
+  createdBy?: number | null;
+  createdAt: string;
+}
+
+export interface OpeningStockList {
+  data: OpeningStock[];
+  total: number;
+  page: number;
+  limit: number;
+}
+
+export type OpeningStockInputStockType = typeof OpeningStockInputStockType[keyof typeof OpeningStockInputStockType];
+
+
+export const OpeningStockInputStockType = {
+  raw_material: 'raw_material',
+  semi_finished: 'semi_finished',
+  finished_good: 'finished_good',
+} as const;
+
+export interface OpeningStockInput {
+  storeId: number;
+  itemName: string;
+  quantity: number;
+  unit: string;
+  stockType?: OpeningStockInputStockType;
+  /** @nullable */
+  batchDetails?: string | null;
+  entryDate: string;
+  /** @nullable */
+  notes?: string | null;
+}
+
 export type AuditLogAction = typeof AuditLogAction[keyof typeof AuditLogAction];
 
 
@@ -1217,6 +1274,12 @@ limit?: number;
 export type ListNotificationsParams = {
 unreadOnly?: boolean;
 page?: number;
+};
+
+export type ListOpeningStockParams = {
+storeId?: number;
+page?: number;
+limit?: number;
 };
 
 export type ListAuditLogsParams = {

@@ -51,6 +51,7 @@ import type {
   ListInventoryMovementsParams,
   ListInventoryParams,
   ListNotificationsParams,
+  ListOpeningStockParams,
   ListPaymentsParams,
   ListProductionBatchesParams,
   ListProductsParams,
@@ -62,6 +63,9 @@ import type {
   LoginInput,
   Notification,
   NotificationList,
+  OpeningStock,
+  OpeningStockInput,
+  OpeningStockList,
   Payment,
   PaymentInput,
   PaymentList,
@@ -5349,6 +5353,149 @@ const {mutation: mutationOptions, request: requestOptions} = options ?
         TContext
       > => {
       return useMutation(getMarkAllNotificationsReadMutationOptions(options));
+    }
+
+export const getListOpeningStockUrl = (params?: ListOpeningStockParams,) => {
+  const normalizedParams = new URLSearchParams();
+
+  Object.entries(params || {}).forEach(([key, value]) => {
+
+    if (value !== undefined) {
+      normalizedParams.append(key, value === null ? 'null' : value.toString())
+    }
+  });
+
+  const stringifiedParams = normalizedParams.toString();
+
+  return stringifiedParams.length > 0 ? `/api/opening-stock?${stringifiedParams}` : `/api/opening-stock`
+}
+
+export const listOpeningStock = async (params?: ListOpeningStockParams, options?: RequestInit): Promise<OpeningStockList> => {
+
+  return customFetch<OpeningStockList>(getListOpeningStockUrl(params),
+  {
+    ...options,
+    method: 'GET'
+
+
+  }
+);}
+
+
+
+
+
+export const getListOpeningStockQueryKey = (params?: ListOpeningStockParams,) => {
+    return [
+    `/api/opening-stock`, ...(params ? [params] : [])
+    ] as const;
+    }
+
+
+export const getListOpeningStockQueryOptions = <TData = Awaited<ReturnType<typeof listOpeningStock>>, TError = ErrorType<unknown>>(params?: ListOpeningStockParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOpeningStock>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+) => {
+
+const {query: queryOptions, request: requestOptions} = options ?? {};
+
+  const queryKey =  queryOptions?.queryKey ?? getListOpeningStockQueryKey(params);
+
+
+
+    const queryFn: QueryFunction<Awaited<ReturnType<typeof listOpeningStock>>> = ({ signal }) => listOpeningStock(params, { signal, ...requestOptions });
+
+
+
+
+
+   return  { queryKey, queryFn, ...queryOptions} as UseQueryOptions<Awaited<ReturnType<typeof listOpeningStock>>, TError, TData> & { queryKey: QueryKey }
+}
+
+export type ListOpeningStockQueryResult = NonNullable<Awaited<ReturnType<typeof listOpeningStock>>>
+export type ListOpeningStockQueryError = ErrorType<unknown>
+
+
+
+export function useListOpeningStock<TData = Awaited<ReturnType<typeof listOpeningStock>>, TError = ErrorType<unknown>>(
+ params?: ListOpeningStockParams, options?: { query?:UseQueryOptions<Awaited<ReturnType<typeof listOpeningStock>>, TError, TData>, request?: SecondParameter<typeof customFetch>}
+
+ ):  UseQueryResult<TData, TError> & { queryKey: QueryKey } {
+
+  const queryOptions = getListOpeningStockQueryOptions(params,options)
+
+  const query = useQuery(queryOptions) as  UseQueryResult<TData, TError> & { queryKey: QueryKey };
+
+  return { ...query, queryKey: queryOptions.queryKey };
+}
+
+
+
+
+
+
+
+export const getCreateOpeningStockUrl = () => {
+
+
+
+
+  return `/api/opening-stock`
+}
+
+export const createOpeningStock = async (openingStockInput: OpeningStockInput, options?: RequestInit): Promise<OpeningStock> => {
+
+  return customFetch<OpeningStock>(getCreateOpeningStockUrl(),
+  {
+    ...options,
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...options?.headers },
+    body: JSON.stringify(
+      openingStockInput,)
+  }
+);}
+
+
+
+
+export const getCreateOpeningStockMutationOptions = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOpeningStock>>, TError,{data: BodyType<OpeningStockInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+): UseMutationOptions<Awaited<ReturnType<typeof createOpeningStock>>, TError,{data: BodyType<OpeningStockInput>}, TContext> => {
+
+const mutationKey = ['createOpeningStock'];
+const {mutation: mutationOptions, request: requestOptions} = options ?
+      options.mutation && 'mutationKey' in options.mutation && options.mutation.mutationKey ?
+      options
+      : {...options, mutation: {...options.mutation, mutationKey}}
+      : {mutation: { mutationKey, }, request: undefined};
+
+
+
+
+      const mutationFn: MutationFunction<Awaited<ReturnType<typeof createOpeningStock>>, {data: BodyType<OpeningStockInput>}> = (props) => {
+          const {data} = props ?? {};
+
+          return  createOpeningStock(data,requestOptions)
+        }
+
+
+
+
+
+
+  return  { mutationFn, ...mutationOptions }}
+
+    export type CreateOpeningStockMutationResult = NonNullable<Awaited<ReturnType<typeof createOpeningStock>>>
+    export type CreateOpeningStockMutationBody = BodyType<OpeningStockInput>
+    export type CreateOpeningStockMutationError = ErrorType<unknown>
+
+    export const useCreateOpeningStock = <TError = ErrorType<unknown>,
+    TContext = unknown>(options?: { mutation?:UseMutationOptions<Awaited<ReturnType<typeof createOpeningStock>>, TError,{data: BodyType<OpeningStockInput>}, TContext>, request?: SecondParameter<typeof customFetch>}
+ ): UseMutationResult<
+        Awaited<ReturnType<typeof createOpeningStock>>,
+        TError,
+        {data: BodyType<OpeningStockInput>},
+        TContext
+      > => {
+      return useMutation(getCreateOpeningStockMutationOptions(options));
     }
 
 export const getListAuditLogsUrl = (params?: ListAuditLogsParams,) => {
