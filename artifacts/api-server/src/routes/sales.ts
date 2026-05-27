@@ -2,6 +2,7 @@ import { Router } from "express";
 import { eq, and, ilike, SQL } from "drizzle-orm";
 import { db, salesTable, saleItemsTable, customersTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
 import { requireAuth } from "../lib/auth";
+import { notifyByPermission } from "../lib/notify";
 
 const router = Router();
 
@@ -83,6 +84,15 @@ router.post("/sales", requireAuth, async (req, res): Promise<void> => {
       .update(customersTable)
       .set({ creditBalance: balanceDue.toString() })
       .where(eq(customersTable.id, customerId));
+
+    // Notify finance / supervisors about the new credit liability
+    await notifyByPermission("can_view_reports", storeId ?? null, {
+      type: "credit_sale",
+      title: `Credit Sale — ${invoiceNumber}`,
+      message: `New credit sale of ETB ${Number(totalAmount).toLocaleString(undefined, { minimumFractionDigits: 2 })} recorded. Balance due: ETB ${Number(balanceDue).toLocaleString(undefined, { minimumFractionDigits: 2 })}.`,
+      entityType: "sale",
+      entityId: sale.id,
+    });
   }
 
   const saleItems = await db.select().from(saleItemsTable).where(eq(saleItemsTable.saleId, sale.id));

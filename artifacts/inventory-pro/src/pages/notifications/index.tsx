@@ -8,6 +8,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { Bell, CheckCheck, ExternalLink } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
+import { useNotificationStream } from "@/hooks/useNotificationStream";
 
 const TYPE_META: Record<string, { label: string; variant: "default" | "secondary" | "destructive" | "outline" }> = {
   store_request:         { label: "Store Request",      variant: "outline" },
@@ -19,6 +20,12 @@ const TYPE_META: Record<string, { label: string; variant: "default" | "secondary
   low_stock:             { label: "Low Stock",          variant: "destructive" },
   pending_approval:      { label: "Pending Approval",   variant: "outline" },
   overdue_payment:       { label: "Overdue Payment",    variant: "destructive" },
+  transfer_pending:      { label: "Transfer Request",   variant: "outline" },
+  transfer_approved:     { label: "Transfer Approved",  variant: "default" },
+  transfer_rejected:     { label: "Transfer Rejected",  variant: "destructive" },
+  transfer_shipped:      { label: "Items Shipped",      variant: "secondary" },
+  transfer_received:     { label: "Transfer Received",  variant: "default" },
+  credit_sale:           { label: "Credit Sale",        variant: "secondary" },
 };
 
 function getEntityPath(entityType: string | null, entityId: number | null): string | null {
@@ -27,6 +34,8 @@ function getEntityPath(entityType: string | null, entityId: number | null): stri
     case "store_request":     return `/store-requests/${entityId}`;
     case "grn":               return `/grn/${entityId}`;
     case "production_batch":  return `/production/${entityId}`;
+    case "transfer":          return `/transfers/${entityId}`;
+    case "sale":              return `/sales/${entityId}`;
     default:                  return null;
   }
 }
@@ -36,9 +45,11 @@ export default function Notifications() {
   const queryClient = useQueryClient();
   const [, navigate] = useLocation();
 
+  useNotificationStream();
+
   const { data, isLoading } = useListNotifications(
     { unreadOnly: false },
-    { query: { refetchInterval: 30_000, queryKey: getListNotificationsQueryKey({ unreadOnly: false }) } },
+    { query: { refetchInterval: 15_000, queryKey: getListNotificationsQueryKey({ unreadOnly: false }) } },
   );
   const markRead = useMarkNotificationRead();
   const markAllRead = useMarkAllNotificationsRead();
@@ -100,7 +111,6 @@ export default function Notifications() {
                 onClick={() => handleClick(n)}
                 data-testid={`notification-${n.id}`}
               >
-                {/* Unread dot */}
                 <div className="mt-1.5 shrink-0">
                   {!n.isRead
                     ? <span className="h-2.5 w-2.5 rounded-full bg-primary block" />

@@ -2,6 +2,7 @@ import { Router } from "express";
 import { eq, and, desc, SQL } from "drizzle-orm";
 import { db, notificationsTable } from "@workspace/db";
 import { requireAuth } from "../lib/auth";
+import { registerSseClient, unregisterSseClient } from "../lib/sseClients";
 import { sql } from "drizzle-orm";
 
 const router = Router();
@@ -32,6 +33,38 @@ router.get("/notifications", requireAuth, async (req, res): Promise<void> => {
     .where(and(eq(notificationsTable.userId, userId), eq(notificationsTable.isRead, false)));
 
   res.json({ data: rows, total, unreadCount: Number(unreadResult?.count ?? 0) });
+});
+
+/**
+ * SSE endpoint — pushes real-time notification events to the connected client.
+ * The frontend connects via fetch+ReadableStream with an Authorization header
+ * (Bearer token from sessionStorage), so requireAuth works as normal.
+ */
+router.get("/notifications/stream", requireAuth, (req, res): void => {
+  const userId = req.session.userId!;
+
+  res.setHeader("Content-Type", "text/event-stream");
+  res.setHeader("Cache-Control", "no-cache, no-transform");
+  res.setHeader("Connection", "keep-alive");
+  res.setHeader("X-Accel-Buffering", "no");
+  res.flushHeaders();
+
+  res.write(`data: ${JSON.stringify({ type: "connected" })}\n\n`);
+
+  registerSseClient(userId, res);
+
+  const heartbeat = setInterval(() => {
+    try {
+      res.write(`data: ${JSON.stringify({ type: "heartbeat" })}\n\n`);
+    } catch {
+      clearInterval(heartbeat);
+    }
+  }, 25_000);
+
+  req.on("close", () => {
+    clearInterval(heartbeat);
+    unregisterSseClient(userId, res);
+  });
 });
 
 router.patch("/notifications/:id/read", requireAuth, async (req, res): Promise<void> => {

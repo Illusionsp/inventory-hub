@@ -2,6 +2,7 @@ import { Router } from "express";
 import { eq, and, SQL } from "drizzle-orm";
 import { db, transfersTable, transferItemsTable, storesTable, productsTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
 import { requireAuth, requirePermission } from "../lib/auth";
+import { notifyByPermission } from "../lib/notify";
 
 const router = Router();
 
@@ -47,6 +48,16 @@ router.post("/transfers", requireAuth, async (req, res): Promise<void> => {
   }
 
   const insertedItems = await db.select().from(transferItemsTable).where(eq(transferItemsTable.transferId, transfer.id));
+
+  // Notify approvers at the destination store — they must review the request
+  await notifyByPermission("can_approve_store_requests", toStoreId, {
+    type: "transfer_pending",
+    title: `Transfer Request — ${transferNumber}`,
+    message: `A new stock transfer request is awaiting your approval.`,
+    entityType: "transfer",
+    entityId: transfer.id,
+  });
+
   res.status(201).json({ ...transfer, fromStoreName: null, toStoreName: null, items: insertedItems });
 });
 
@@ -67,6 +78,16 @@ router.post("/transfers/:id/approve", requireAuth, requirePermission("can_approv
   }
   const [t] = await db.update(transfersTable).set({ status: "approved", approvedById: req.session.userId }).where(eq(transfersTable.id, id)).returning();
   if (!t) { res.status(404).json({ error: "Not found" }); return; }
+
+  // Notify the source store's dispatchers — they must ship the goods
+  await notifyByPermission("can_approve_dispatch", t.fromStoreId, {
+    type: "transfer_approved",
+    title: `Transfer Approved — ${t.transferNumber}`,
+    message: `Transfer request has been approved. Please prepare and ship the items.`,
+    entityType: "transfer",
+    entityId: t.id,
+  });
+
   res.json({ ...t, fromStoreName: null, toStoreName: null, items });
 });
 
@@ -75,6 +96,16 @@ router.post("/transfers/:id/reject", requireAuth, requirePermission("can_approve
   const { notes } = req.body;
   const [t] = await db.update(transfersTable).set({ status: "rejected", rejectionReason: notes ?? null }).where(eq(transfersTable.id, id)).returning();
   if (!t) { res.status(404).json({ error: "Not found" }); return; }
+
+  // Notify the source store that their request was rejected
+  await notifyByPermission("can_create_store_requests", t.fromStoreId, {
+    type: "transfer_rejected",
+    title: `Transfer Rejected — ${t.transferNumber}`,
+    message: `Your transfer request has been rejected.${notes ? ` Reason: ${notes}` : ""}`,
+    entityType: "transfer",
+    entityId: t.id,
+  });
+
   res.json({ ...t, fromStoreName: null, toStoreName: null, items: [] });
 });
 
@@ -86,7 +117,6 @@ router.post("/transfers/:id/ship", requireAuth, async (req, res): Promise<void> 
 
   for (const si of (shipItems ?? [])) {
     await db.update(transferItemsTable).set({ shippedQty: si.shippedQty.toString() }).where(eq(transferItemsTable.id, si.transferItemId));
-    // Deduct from source store
     const [item] = await db.select().from(transferItemsTable).where(eq(transferItemsTable.id, si.transferItemId));
     if (item) {
       const [inv] = await db.select().from(inventoryTable).where(and(eq(inventoryTable.productId, item.productId), eq(inventoryTable.storeId, transfer.fromStoreId)));
@@ -99,8 +129,18 @@ router.post("/transfers/:id/ship", requireAuth, async (req, res): Promise<void> 
   }
 
   const [t] = await db.update(transfersTable).set({ status: "shipped", shippedAt: new Date() }).where(eq(transfersTable.id, id)).returning();
-  const items = await db.select().from(transferItemsTable).where(eq(transferItemsTable.transferId, id));
-  res.json({ ...t, fromStoreName: null, toStoreName: null, items });
+  const updatedItems = await db.select().from(transferItemsTable).where(eq(transferItemsTable.transferId, id));
+
+  // Notify the destination store — items are on the way, ready to receive
+  await notifyByPermission("can_receive_items", t.toStoreId, {
+    type: "transfer_shipped",
+    title: `Items Shipped — ${t.transferNumber}`,
+    message: `Stock has been dispatched and is on its way. Please mark as received when it arrives.`,
+    entityType: "transfer",
+    entityId: t.id,
+  });
+
+  res.json({ ...t, fromStoreName: null, toStoreName: null, items: updatedItems });
 });
 
 router.post("/transfers/:id/receive", requireAuth, requirePermission("can_receive_items"), async (req, res): Promise<void> => {
@@ -125,8 +165,18 @@ router.post("/transfers/:id/receive", requireAuth, requirePermission("can_receiv
   }
 
   const [t] = await db.update(transfersTable).set({ status: "received", receivedAt: new Date() }).where(eq(transfersTable.id, id)).returning();
-  const items = await db.select().from(transferItemsTable).where(eq(transferItemsTable.transferId, id));
-  res.json({ ...t, fromStoreName: null, toStoreName: null, items });
+  const updatedItems = await db.select().from(transferItemsTable).where(eq(transferItemsTable.transferId, id));
+
+  // Notify the source store that the transfer was successfully received
+  await notifyByPermission("can_view_request_status", t.fromStoreId, {
+    type: "transfer_received",
+    title: `Transfer Received — ${t.transferNumber}`,
+    message: `The destination store has confirmed receipt of the transferred items.`,
+    entityType: "transfer",
+    entityId: t.id,
+  });
+
+  res.json({ ...t, fromStoreName: null, toStoreName: null, items: updatedItems });
 });
 
 export default router;

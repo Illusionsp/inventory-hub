@@ -1,5 +1,6 @@
 import { eq } from "drizzle-orm";
 import { db, notificationsTable, usersTable, getEffectivePermissions } from "@workspace/db";
+import { pushSseToUser } from "./sseClients";
 
 export interface NotifyOpts {
   title: string;
@@ -14,14 +15,15 @@ async function insertNotifications(targets: { id: number }[], opts: NotifyOpts):
   for (const u of targets) {
     if (seen.has(u.id)) continue;
     seen.add(u.id);
-    await db.insert(notificationsTable).values({
+    const [notification] = await db.insert(notificationsTable).values({
       userId: u.id,
       type: opts.type,
       title: opts.title,
       message: opts.message,
       entityType: opts.entityType,
       entityId: opts.entityId,
-    });
+    }).returning();
+    if (notification) pushSseToUser(u.id, { type: "new_notification", notification });
   }
 }
 

@@ -4,6 +4,7 @@ import { useAuth } from "@/lib/auth";
 import { useLogout, useListNotifications } from "@workspace/api-client-react";
 import { AUTH_BROADCAST_CHANNEL } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
+import { useNotificationStream } from "@/hooks/useNotificationStream";
 import {
   Sidebar,
   SidebarContent,
@@ -150,9 +151,11 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
 
   const userRole = user?.role || "sales_officer";
 
+  useNotificationStream();
+
   const { data: notifData } = useListNotifications(
     {},
-    { query: { refetchInterval: 30_000, queryKey: ["listNotifications", "sidebar-badge"] } },
+    { query: { refetchInterval: 15_000, queryKey: ["listNotifications", "sidebar-badge"] } },
   );
   const unreadCount = notifData?.unreadCount ?? 0;
 
