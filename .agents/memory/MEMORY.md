@@ -1,1 +1,2 @@
 - [Permission system](permission-system.md) — task-based permissions layered on roles; super_admin always has all; /auth/me returns effective perms; list /users returns raw (null = role defaults)
+- [Session fork design](session-fork-design.md) — fork must write directly to sessionStore, never call session.regenerate(); regenerate() destroys shared cookie and cascades 401s across tabs

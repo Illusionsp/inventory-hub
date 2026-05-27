@@ -47,29 +47,45 @@ router.post("/auth/login", async (req, res): Promise<void> => {
  * sessionStorage).  Without this, every such tab shares the same session, so
  * logging out one tab destroys the session for all of them.
  *
- * session.regenerate() creates a brand-new session, copies over the userId,
- * and invalidates the old session in the store — giving this tab a unique ID
- * that cannot be disrupted by another tab's logout.
+ * IMPORTANT: we must NOT use session.regenerate() here.  regenerate() destroys
+ * the old session AND sets a new Set-Cookie header, which updates the shared
+ * browser cookie for ALL open tabs.  The next tab to call /auth/fork then sees
+ * a new cookie, forks that new session, destroys it in turn, and so on —
+ * causing a cascade of session invalidations (the alternating 401/304 pattern).
+ *
+ * Instead, we write a brand-new entry directly to the session store with a
+ * fresh random ID and return that ID as the Bearer token.  The original shared
+ * cookie session is left completely intact so other unisolated tabs can still
+ * authenticate via the cookie while they initialise.
  */
 router.post("/auth/fork", requireAuth, async (req, res): Promise<void> => {
-  const userId = req.session.userId!;
-  const userRole = req.session.userRole!;
-  const userPermissions = req.session.userPermissions ?? [];
+  const { randomBytes } = await import("node:crypto");
+  const newSessionId = randomBytes(32).toString("hex");
 
-  req.session.regenerate(async (err) => {
+  // Match the 7-day TTL configured in app.ts for regular sessions.
+  const maxAge = 7 * 24 * 60 * 60 * 1000;
+  const expires = new Date(Date.now() + maxAge);
+
+  // connect-pg-simple reads sess.cookie.expires to calculate the DB row TTL.
+  const sessionData = {
+    userId: req.session.userId!,
+    userRole: req.session.userRole!,
+    userPermissions: req.session.userPermissions ?? [],
+    cookie: {
+      originalMaxAge: maxAge,
+      expires: expires.toISOString(),
+      httpOnly: true,
+      path: "/",
+    },
+  };
+
+  req.sessionStore.set(newSessionId, sessionData as any, (err) => {
     if (err) {
+      req.log.error({ err }, "Session fork failed");
       res.status(500).json({ error: "Session fork failed" });
       return;
     }
-    req.session.userId = userId;
-    req.session.userRole = userRole;
-    req.session.userPermissions = userPermissions;
-
-    await new Promise<void>((resolve, reject) =>
-      req.session.save((e) => (e ? reject(e) : resolve())),
-    );
-
-    res.json({ sessionId: req.sessionID });
+    res.json({ sessionId: newSessionId });
   });
 });
 

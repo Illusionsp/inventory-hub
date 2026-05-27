@@ -3,9 +3,9 @@ import { useForm } from "react-hook-form";
 import { z } from "zod";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
-import { useLogin, useGetMe } from "@workspace/api-client-react";
+import { useLogin } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
-import { AUTH_BROADCAST_CHANNEL } from "@/lib/auth";
+import { AUTH_BROADCAST_CHANNEL, useAuth } from "@/lib/auth";
 import {
   Form,
   FormControl,
@@ -28,13 +28,16 @@ export default function Login() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
   const queryClient = useQueryClient();
-  const { data: user, isLoading: isUserLoading } = useGetMe();
+  const { user, isLoading: isAuthLoading } = useAuth();
 
+  // Redirect to dashboard once we know the user is already logged in.
+  // isAuthLoading is true until the first /auth/me response lands, so this
+  // effect only fires after the session is confirmed — not on the initial render.
   React.useEffect(() => {
-    if (user && !isUserLoading) {
+    if (!isAuthLoading && user) {
       setLocation("/dashboard");
     }
-  }, [user, isUserLoading, setLocation]);
+  }, [user, isAuthLoading, setLocation]);
 
   const form = useForm<z.infer<typeof loginSchema>>({
     resolver: zodResolver(loginSchema),
@@ -77,7 +80,10 @@ export default function Login() {
     loginMutation.mutate({ data: values });
   }
 
-  if (isUserLoading || user) return null;
+  // Show the form during the initial auth check so the user never sees a blank
+  // screen.  If they are already logged in the useEffect above will redirect
+  // to /dashboard as soon as the check completes.
+  if (user) return null;
 
   return (
     <div className="min-h-screen w-full flex flex-col lg:flex-row bg-background">

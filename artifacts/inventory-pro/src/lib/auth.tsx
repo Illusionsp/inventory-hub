@@ -23,14 +23,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       queryKey: getGetMeQueryKey(),
       staleTime: 60_000,
       gcTime: 5 * 60 * 1000,
-      // Retry once on failure before treating the user as logged out.
-      // This prevents a single transient network error from forcing logout.
-      retry: 1,
+      // Never retry auth failures (401) — the session is gone, redirect immediately.
+      // Retry once for any other error (network blip, 5xx) so a transient hiccup
+      // does not force a logout.
+      retry: (failureCount, error) =>
+        (error as any)?.status === 401 ? false : failureCount < 1,
       retryDelay: 1_000,
       refetchOnWindowFocus: true,
     },
   });
-  const [, setLocation] = useLocation();
+  const [location, setLocation] = useLocation();
 
   /**
    * isInitialized becomes true after the very first /auth/me response lands
@@ -102,13 +104,16 @@ export function AuthProvider({ children }: { children: ReactNode }) {
    * Gating on isInitialized prevents the redirect flash that would otherwise
    * occur on page load before the session cookie is verified.
    */
+  // Uses Wouter's `location` (relative to the router's base) rather than
+  // window.location.pathname so the check works correctly regardless of
+  // what base URL the app is mounted at.
   useEffect(() => {
     if (!isInitialized) return;
     if (isFetching) return;
-    if (!user && window.location.pathname !== "/login") {
+    if (!user && location !== "/login") {
       setLocation("/login");
     }
-  }, [isInitialized, isFetching, user, setLocation]);
+  }, [isInitialized, isFetching, user, location, setLocation]);
 
   function hasPermission(permission: string): boolean {
     if (!user) return false;
