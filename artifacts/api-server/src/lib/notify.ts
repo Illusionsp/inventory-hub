@@ -1,5 +1,5 @@
-import { and, eq, inArray } from "drizzle-orm";
-import { db, notificationsTable, usersTable } from "@workspace/db";
+import { eq } from "drizzle-orm";
+import { db, notificationsTable, usersTable, getEffectivePermissions } from "@workspace/db";
 
 export interface NotifyOpts {
   title: string;
@@ -9,36 +9,9 @@ export interface NotifyOpts {
   entityId: number;
 }
 
-/**
- * Insert a notification for every active user whose role is in `roles`.
- * super_admin users are always targeted globally (no store filter).
- * Other roles are scoped to `storeId` when provided.
- */
-export async function notifyUsers(
-  roles: string[],
-  storeId: number | null,
-  opts: NotifyOpts,
-): Promise<void> {
-  const admins = roles.includes("super_admin")
-    ? await db.select({ id: usersTable.id })
-        .from(usersTable)
-        .where(and(eq(usersTable.role, "super_admin"), eq(usersTable.isActive, true)))
-    : [];
-
-  const otherRoles = roles.filter(r => r !== "super_admin");
-  let others: { id: number }[] = [];
-  if (otherRoles.length > 0) {
-    others = storeId != null
-      ? await db.select({ id: usersTable.id })
-          .from(usersTable)
-          .where(and(inArray(usersTable.role, otherRoles), eq(usersTable.storeId, storeId), eq(usersTable.isActive, true)))
-      : await db.select({ id: usersTable.id })
-          .from(usersTable)
-          .where(and(inArray(usersTable.role, otherRoles), eq(usersTable.isActive, true)));
-  }
-
+async function insertNotifications(targets: { id: number }[], opts: NotifyOpts): Promise<void> {
   const seen = new Set<number>();
-  for (const u of [...admins, ...others]) {
+  for (const u of targets) {
     if (seen.has(u.id)) continue;
     seen.add(u.id);
     await db.insert(notificationsTable).values({
@@ -50,4 +23,59 @@ export async function notifyUsers(
       entityId: opts.entityId,
     });
   }
+}
+
+/**
+ * Notify every active user who holds a specific permission.
+ * super_admin users are always included (globally).
+ * Other users are scoped to `storeId` when provided.
+ * Effective permissions are computed from role defaults + custom overrides.
+ */
+export async function notifyByPermission(
+  permission: string,
+  storeId: number | null,
+  opts: NotifyOpts,
+): Promise<void> {
+  const allUsers = await db
+    .select({
+      id: usersTable.id,
+      role: usersTable.role,
+      permissions: usersTable.permissions,
+      storeId: usersTable.storeId,
+    })
+    .from(usersTable)
+    .where(eq(usersTable.isActive, true));
+
+  const targets = allUsers.filter(u => {
+    if (u.role === "super_admin") return true;
+    if (storeId != null && u.storeId !== storeId) return false;
+    return getEffectivePermissions(u).includes(permission);
+  });
+
+  await insertNotifications(targets, opts);
+}
+
+/**
+ * Notify every active user whose role is in `roles`.
+ * super_admin users are always targeted globally (no store filter).
+ * Other roles are scoped to `storeId` when provided.
+ * @deprecated Prefer notifyByPermission for workflow steps.
+ */
+export async function notifyUsers(
+  roles: string[],
+  storeId: number | null,
+  opts: NotifyOpts,
+): Promise<void> {
+  const allUsers = await db
+    .select({ id: usersTable.id, role: usersTable.role, storeId: usersTable.storeId })
+    .from(usersTable)
+    .where(eq(usersTable.isActive, true));
+
+  const targets = allUsers.filter(u => {
+    if (!roles.includes(u.role)) return false;
+    if (u.role === "super_admin") return true;
+    return storeId == null || u.storeId === storeId;
+  });
+
+  await insertNotifications(targets, opts);
 }

@@ -2,7 +2,7 @@ import { Router } from "express";
 import { eq, and, SQL, ilike } from "drizzle-orm";
 import { db, grnsTable, grnItemsTable, suppliersTable, storesTable, usersTable, productsTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
 import { requireAuth, requirePermission } from "../lib/auth";
-import { notifyUsers } from "../lib/notify";
+import { notifyByPermission } from "../lib/notify";
 
 const router = Router();
 
@@ -80,9 +80,9 @@ router.post("/grns", requireAuth, async (req, res): Promise<void> => {
     });
   }
 
-  await notifyUsers(["super_admin", "store_manager", "approver"], grn.storeId, {
-    type: "grn_pending", title: "New GRN Created",
-    message: `GRN ${grn.grnNumber} has been created and requires review/approval.`,
+  await notifyByPermission("can_approve_requests", grn.storeId, {
+    type: "grn_pending", title: "New GRN Created — Awaiting Approval",
+    message: `GRN ${grn.grnNumber} has been created and requires your approval.`,
     entityType: "grn", entityId: grn.id,
   });
 
@@ -150,9 +150,9 @@ router.post("/grns/:id/submit", requireAuth, async (req, res): Promise<void> => 
   const [grn] = await db.update(grnsTable).set({ status: "pending_approval" }).where(eq(grnsTable.id, id)).returning();
   if (!grn) { res.status(404).json({ error: "Not found" }); return; }
 
-  await notifyUsers(["super_admin", "approver"], grn.storeId, {
-    type: "grn_pending", title: "GRN Awaiting Approval",
-    message: `GRN ${grn.grnNumber} has been submitted and is awaiting your approval.`,
+  await notifyByPermission("can_approve_requests", grn.storeId, {
+    type: "grn_pending", title: "GRN Submitted — Awaiting Your Approval",
+    message: `GRN ${grn.grnNumber} has been submitted for approval. Please review and approve or reject.`,
     entityType: "grn", entityId: grn.id,
   });
 
@@ -207,9 +207,9 @@ router.post("/grns/:id/approve", requireAuth, requirePermission("can_approve_req
     await db.insert(inventoryMovementsTable).values({ productId, storeId: grn.storeId, movementType: "grn_receipt", quantity: item.quantity, referenceId: id, referenceType: "grn", createdBy: req.session.userId });
   }
 
-  await notifyUsers(["super_admin", "store_manager"], grn.storeId, {
-    type: "grn_approved", title: "GRN Approved",
-    message: `GRN ${grn.grnNumber} has been approved. Inventory has been updated.`,
+  await notifyByPermission("can_view_request_status", grn.storeId, {
+    type: "grn_approved", title: "GRN Approved — Stock Updated",
+    message: `GRN ${grn.grnNumber} has been approved. Inventory has been updated with the received goods.`,
     entityType: "grn", entityId: grn.id,
   });
 
@@ -222,7 +222,7 @@ router.post("/grns/:id/reject", requireAuth, requirePermission("can_approve_requ
   const [grn] = await db.update(grnsTable).set({ status: "rejected", rejectionReason: notes ?? null }).where(eq(grnsTable.id, id)).returning();
   if (!grn) { res.status(404).json({ error: "Not found" }); return; }
 
-  await notifyUsers(["super_admin", "store_manager"], grn.storeId, {
+  await notifyByPermission("can_view_request_status", grn.storeId, {
     type: "grn_rejected", title: "GRN Rejected",
     message: `GRN ${grn.grnNumber} has been rejected.${notes ? ` Reason: ${notes}` : ""}`,
     entityType: "grn", entityId: grn.id,

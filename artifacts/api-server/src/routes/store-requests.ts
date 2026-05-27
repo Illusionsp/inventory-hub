@@ -2,7 +2,7 @@ import { Router } from "express";
 import { eq, and, or, SQL } from "drizzle-orm";
 import { db, storeRequestsTable, storeRequestItemsTable, usersTable, productsTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
 import { requireAuth, requirePermission } from "../lib/auth";
-import { notifyUsers } from "../lib/notify";
+import { notifyByPermission } from "../lib/notify";
 
 const router = Router();
 
@@ -89,9 +89,9 @@ router.post("/store-requests", requireAuth, requirePermission("can_create_store_
     .from(storeRequestItemsTable)
     .where(eq(storeRequestItemsTable.requestId, request.id));
 
-  await notifyUsers(["super_admin", "store_manager", "approver"], receivingStoreId, {
-    type: "store_request", title: "New Store Request Received",
-    message: `Request ${requestNumber} has been submitted and requires your approval.`,
+  await notifyByPermission("can_approve_requests", receivingStoreId, {
+    type: "store_request", title: "New Store Request — Awaiting Your Approval",
+    message: `Request ${requestNumber} has been submitted by another store and requires your approval.`,
     entityType: "store_request", entityId: request.id,
   });
 
@@ -129,9 +129,9 @@ router.post("/store-requests/:id/approve", requireAuth, requirePermission("can_a
     .returning();
   if (!request) { res.status(404).json({ error: "Not found or not pending" }); return; }
 
-  await notifyUsers(["super_admin", "store_manager"], request.requestingStoreId, {
+  await notifyByPermission("can_create_store_requests", request.requestingStoreId, {
     type: "store_request", title: "Store Request Approved",
-    message: `Request ${request.requestNumber} has been approved. Items are ready to be dispatched.`,
+    message: `Your request ${request.requestNumber} has been approved. Items will be dispatched to your store.`,
     entityType: "store_request", entityId: id,
   });
 
@@ -149,9 +149,9 @@ router.post("/store-requests/:id/reject", requireAuth, requirePermission("can_ap
     .returning();
   if (!request) { res.status(404).json({ error: "Not found or not pending" }); return; }
 
-  await notifyUsers(["super_admin", "store_manager"], request.requestingStoreId, {
+  await notifyByPermission("can_create_store_requests", request.requestingStoreId, {
     type: "store_request", title: "Store Request Rejected",
-    message: `Request ${request.requestNumber} has been rejected.${reason ? ` Reason: ${reason}` : ""}`,
+    message: `Your request ${request.requestNumber} has been rejected.${reason ? ` Reason: ${reason}` : ""}`,
     entityType: "store_request", entityId: id,
   });
 
@@ -210,9 +210,9 @@ router.post("/store-requests/:id/send", requireAuth, requirePermission("can_crea
     });
   }
 
-  await notifyUsers(["super_admin", "store_manager"], request.requestingStoreId, {
-    type: "store_request", title: "Items Dispatched — Awaiting Receipt",
-    message: `Items for request ${request.requestNumber} are on their way. Mark as received when they arrive.`,
+  await notifyByPermission("can_receive_items", request.requestingStoreId, {
+    type: "store_request", title: "Items Dispatched — Ready to Receive",
+    message: `Items for request ${request.requestNumber} are on their way. Please mark as received when they arrive.`,
     entityType: "store_request", entityId: id,
   });
 
@@ -254,9 +254,9 @@ router.post("/store-requests/:id/receive", requireAuth, requirePermission("can_r
     });
   }
 
-  await notifyUsers(["super_admin", "store_manager"], request.receivingStoreId, {
-    type: "store_request", title: "Request Completed — Items Received",
-    message: `Items for request ${request.requestNumber} have been received. Stock has been updated.`,
+  await notifyByPermission("can_view_request_status", request.receivingStoreId, {
+    type: "store_request", title: "Request Fulfilled — Items Received by Requester",
+    message: `Items for request ${request.requestNumber} have been confirmed received. The transfer is now complete.`,
     entityType: "store_request", entityId: id,
   });
 

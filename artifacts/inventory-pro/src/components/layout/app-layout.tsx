@@ -19,7 +19,6 @@ import {
 } from "@/components/ui/sidebar";
 import {
   Activity,
-  AlertTriangle,
   ArrowRightLeft,
   BarChart2,
   Bell,
@@ -39,7 +38,6 @@ import {
 } from "lucide-react";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import { Button } from "@/components/ui/button";
-import { Badge } from "@/components/ui/badge";
 
 type Role = string;
 
@@ -47,7 +45,10 @@ interface NavItem {
   title: string;
   icon: React.ElementType;
   url: string;
+  /** Show only to these specific roles (admin-only items) */
   roles?: Role[];
+  /** Show to any user who has this permission (overrides/augments roles) */
+  permission?: string;
   /** Extra path prefixes that should also mark this item active */
   activeFor?: string[];
 }
@@ -56,8 +57,6 @@ interface NavGroup {
   title: string;
   items: NavItem[];
 }
-
-const ALL_ROLES = ["super_admin", "store_manager", "finance", "approver", "sales_officer", "accountant"];
 
 const navGroups: NavGroup[] = [
   {
@@ -70,64 +69,69 @@ const navGroups: NavGroup[] = [
   {
     title: "Inventory & Production",
     items: [
-      { title: "Opening Stock", icon: PackagePlus, url: "/opening-stock", roles: ["super_admin", "store_manager"] },
-      { title: "Stock Levels", icon: Package, url: "/inventory", roles: ["super_admin", "store_manager", "approver"] },
-      { title: "Movements", icon: ArrowRightLeft, url: "/inventory/movements", roles: ["super_admin", "store_manager"] },
-      { title: "Production Batches", icon: Factory, url: "/production", roles: ["super_admin", "store_manager"] },
-      { title: "Requesting", icon: SendHorizonal, url: "/store-requests", activeFor: ["/transfers"], roles: ["super_admin", "store_manager", "approver"] },
-      { title: "Goods Receiving", icon: ClipboardList, url: "/grn", roles: ["super_admin", "store_manager", "approver", "finance", "accountant"] },
+      { title: "Opening Stock",      icon: PackagePlus,    url: "/opening-stock",       permission: "can_manage_inventory" },
+      { title: "Stock Levels",       icon: Package,        url: "/inventory",            permission: "can_manage_inventory" },
+      { title: "Movements",          icon: ArrowRightLeft, url: "/inventory/movements",  permission: "can_manage_inventory" },
+      { title: "Production Batches", icon: Factory,        url: "/production",           permission: "can_create_batch_production" },
+      { title: "Requesting",         icon: SendHorizonal,  url: "/store-requests",       permission: "can_view_request_status", activeFor: ["/transfers"] },
+      { title: "Goods Receiving",    icon: ClipboardList,  url: "/grn",                  permission: "can_view_request_status" },
     ],
   },
   {
     title: "Sales & Customers",
     items: [
-      { title: "Sales Invoices", icon: ShoppingCart, url: "/sales", roles: ["super_admin", "finance", "sales_officer", "accountant"] },
-      { title: "Sales Report", icon: BarChart2, url: "/sales/report", roles: ["super_admin", "finance", "sales_officer", "accountant"] },
-      { title: "Payments", icon: CreditCard, url: "/payments", roles: ["super_admin", "finance", "accountant"] },
-      { title: "Customers", icon: Users, url: "/customers", roles: ["super_admin", "finance", "sales_officer", "accountant"] },
+      { title: "Sales Invoices", icon: ShoppingCart, url: "/sales",        permission: "can_view_reports" },
+      { title: "Sales Report",   icon: BarChart2,    url: "/sales/report", permission: "can_view_reports" },
+      { title: "Payments",       icon: CreditCard,   url: "/payments",     permission: "can_view_reports" },
+      { title: "Customers",      icon: Users,        url: "/customers",    permission: "can_view_reports" },
     ],
   },
   {
     title: "Master Data",
     items: [
-      { title: "Products", icon: Package, url: "/products", roles: ["super_admin", "store_manager"] },
-      { title: "Categories", icon: Box, url: "/categories", roles: ["super_admin", "store_manager"] },
-      { title: "Suppliers", icon: Store, url: "/suppliers", roles: ["super_admin", "store_manager", "finance", "accountant"] },
+      { title: "Products",   icon: Package, url: "/products",   permission: "can_manage_inventory" },
+      { title: "Categories", icon: Box,     url: "/categories", permission: "can_manage_inventory" },
+      { title: "Suppliers",  icon: Store,   url: "/suppliers",  permission: "can_view_reports" },
     ],
   },
   {
     title: "Administration",
     items: [
-      { title: "Stores", icon: Store, url: "/stores", roles: ["super_admin"] },
-      { title: "Users", icon: Users, url: "/users", roles: ["super_admin"] },
-      { title: "Audit Log", icon: FileText, url: "/audit", roles: ["super_admin"] },
+      { title: "Stores",    icon: Store,    url: "/stores", roles: ["super_admin"] },
+      { title: "Users",     icon: Users,    url: "/users",  roles: ["super_admin"] },
+      { title: "Audit Log", icon: FileText, url: "/audit",  roles: ["super_admin"] },
     ],
   },
 ];
 
 const ROLE_BADGE_COLORS: Record<string, string> = {
-  super_admin: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  super_admin:   "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   store_manager: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
-  finance: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-  approver: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  finance:       "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  approver:      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   sales_officer: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
-  accountant: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  accountant:    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
 };
 
-function canAccess(itemRoles: Role[] | undefined, userRole: string): boolean {
-  if (!itemRoles) return true;
-  return itemRoles.includes(userRole);
+function canAccess(
+  item: NavItem,
+  userRole: string,
+  hasPermission: (p: string) => boolean,
+): boolean {
+  if (userRole === "super_admin") return true;
+  if (item.permission && hasPermission(item.permission)) return true;
+  if (item.roles && item.roles.includes(userRole)) return true;
+  if (!item.roles && !item.permission) return true;
+  return false;
 }
 
 export function AppLayout({ children }: { children: React.ReactNode }) {
-  const { user } = useAuth();
+  const { user, hasPermission } = useAuth();
   const [location] = useLocation();
   const queryClient = useQueryClient();
   const logoutMutation = useLogout({
     mutation: {
       onSuccess: () => {
-        // Clear this tab's session token so the bearer header is gone
-        // before we redirect — the next page load starts fresh.
         sessionStorage.removeItem("tab_session");
         queryClient.clear();
         window.location.href = "/login";
@@ -164,7 +168,7 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
           <SidebarContent className="py-2">
             {navGroups.map((group) => {
               const visibleItems = group.items.filter((item) =>
-                canAccess(item.roles, userRole)
+                canAccess(item, userRole, hasPermission)
               );
               if (visibleItems.length === 0) return null;
 

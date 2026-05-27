@@ -2,7 +2,7 @@ import { Router } from "express";
 import { eq, and, SQL, ilike } from "drizzle-orm";
 import { db, productionBatchesTable, productionInputsTable, productionOutputsTable, productsTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
 import { requireAuth, requirePermission } from "../lib/auth";
-import { notifyUsers } from "../lib/notify";
+import { notifyByPermission } from "../lib/notify";
 
 const router = Router();
 
@@ -178,9 +178,9 @@ router.post("/production-batches/:id/complete", requireAuth, async (req, res): P
   const inputs = await db.select().from(productionInputsTable).where(eq(productionInputsTable.batchId, id));
   const outputs = await db.select().from(productionOutputsTable).where(eq(productionOutputsTable.batchId, id));
 
-  await notifyUsers(["super_admin", "store_manager"], updated.stageToStoreId, {
+  await notifyByPermission("can_create_batch_production", updated.stageToStoreId, {
     type: "production_completed", title: "Batch Completed — Ready to Dispatch",
-    message: `Production batch ${updated.batchNumber} is complete. Dispatch finished products to the final store.`,
+    message: `Production batch ${updated.batchNumber} is complete and ready to be dispatched to the final product store.`,
     entityType: "production_batch", entityId: id,
   });
 
@@ -258,9 +258,9 @@ router.post("/production-batches/:id/dispatch", requireAuth, async (req, res): P
   const inputs = await db.select().from(productionInputsTable).where(eq(productionInputsTable.batchId, id));
   const outputs = await db.select().from(productionOutputsTable).where(eq(productionOutputsTable.batchId, id));
 
-  await notifyUsers(["super_admin", "store_manager"], target, {
-    type: "dispatch_received", title: "Finished Products Dispatched to Your Store",
-    message: `Products from batch ${updated.batchNumber} have been dispatched and added to your store's inventory.`,
+  await notifyByPermission("can_manage_inventory", target, {
+    type: "dispatch_received", title: "Finished Products Added to Your Store",
+    message: `Products from batch ${updated.batchNumber} have been dispatched and added to your store's inventory. Ready for sale.`,
     entityType: "production_batch", entityId: id,
   });
 
