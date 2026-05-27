@@ -19,6 +19,7 @@ import {
 } from "@/components/ui/sidebar";
 import {
   Activity,
+  AlertTriangle,
   ArrowRightLeft,
   BarChart2,
   Bell,
@@ -29,7 +30,6 @@ import {
   FileText,
   LogOut,
   Package,
-  Settings,
   ShoppingCart,
   Store,
   Users,
@@ -73,6 +73,7 @@ const navGroups: NavGroup[] = [
       { title: "Stock Levels",       icon: Package,        url: "/inventory",            permission: "can_manage_inventory" },
       { title: "Movements",          icon: ArrowRightLeft, url: "/inventory/movements",  permission: "can_manage_inventory" },
       { title: "Production Batches", icon: Factory,        url: "/production",           permission: "can_create_batch_production" },
+      { title: "Wastage Report",     icon: AlertTriangle,  url: "/production/wastage",   permission: "can_view_reports" },
       { title: "Requesting",         icon: SendHorizonal,  url: "/store-requests",       permission: "can_view_request_status", activeFor: ["/transfers"] },
       { title: "Goods Receiving",    icon: ClipboardList,  url: "/grn",                  permission: "can_view_request_status" },
     ],
