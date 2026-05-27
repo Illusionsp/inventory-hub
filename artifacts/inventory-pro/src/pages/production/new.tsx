@@ -13,6 +13,8 @@ import { useToast } from "@/hooks/use-toast";
 
 interface InputMaterial { productId: string; quantity: string; unit: string; }
 
+export const BATCH_UNITS = ["KG", "g", "L", "ml", "pcs", "bottles", "bags", "cartons", "mg", "tons"];
+
 export default function ProductionNew() {
   const [, setLocation] = useLocation();
   const { toast } = useToast();
@@ -22,6 +24,7 @@ export default function ProductionNew() {
   const [fromStoreId, setFromStoreId] = useState("");
   const [toStoreId, setToStoreId] = useState("");
   const [plannedOutputQty, setPlannedOutputQty] = useState("");
+  const [outputUnit, setOutputUnit] = useState("KG");
   const [productionDate, setProductionDate] = useState(new Date().toISOString().split("T")[0]);
   const [notes, setNotes] = useState("");
   const [inputs, setInputs] = useState<InputMaterial[]>([{ productId: "", quantity: "", unit: "KG" }]);
@@ -47,6 +50,7 @@ export default function ProductionNew() {
         stageFromStoreId: parseInt(fromStoreId, 10),
         stageToStoreId: parseInt(toStoreId, 10),
         plannedOutputQty: parseFloat(plannedOutputQty),
+        outputUnit,
         productionDate,
         notes: notes || undefined,
         inputMaterials: inputs.filter(i => i.productId && i.quantity).map(i => ({
@@ -84,9 +88,7 @@ export default function ProductionNew() {
             <div className="space-y-1.5">
               <Label>Production Type *</Label>
               <Select value={type} onValueChange={setType}>
-                <SelectTrigger data-testid="select-type">
-                  <SelectValue />
-                </SelectTrigger>
+                <SelectTrigger data-testid="select-type"><SelectValue /></SelectTrigger>
                 <SelectContent>
                   <SelectItem value="raw_to_semi">Raw Material → Semi-Finished</SelectItem>
                   <SelectItem value="semi_to_finished">Semi-Finished → Finished</SelectItem>
@@ -111,10 +113,28 @@ export default function ProductionNew() {
                 <SelectContent>{(stores ?? []).filter(s => String(s.id) !== fromStoreId).map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}</SelectContent>
               </Select>
             </div>
-            <div className="space-y-1.5">
-              <Label>Planned Output Qty *</Label>
-              <Input type="number" min="0" step="0.001" value={plannedOutputQty} onChange={e => setPlannedOutputQty(e.target.value)} placeholder="0.000" data-testid="input-planned-qty" />
+
+            {/* Planned output quantity + unit side by side */}
+            <div className="col-span-2 space-y-1.5">
+              <Label>Planned Output Qty & Unit *</Label>
+              <div className="flex gap-2">
+                <Input
+                  type="number" min="0" step="0.001"
+                  value={plannedOutputQty}
+                  onChange={e => setPlannedOutputQty(e.target.value)}
+                  placeholder="0.000"
+                  className="flex-1"
+                  data-testid="input-planned-qty"
+                />
+                <Select value={outputUnit} onValueChange={setOutputUnit}>
+                  <SelectTrigger className="w-32" data-testid="select-output-unit"><SelectValue /></SelectTrigger>
+                  <SelectContent>
+                    {BATCH_UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
+
             <div className="col-span-2 space-y-1.5">
               <Label>Notes</Label>
               <Textarea value={notes} onChange={e => setNotes(e.target.value)} rows={2} data-testid="textarea-notes" />
@@ -131,7 +151,7 @@ export default function ProductionNew() {
           </CardHeader>
           <CardContent className="space-y-3">
             {inputs.map((inp, i) => (
-              <div key={i} className="grid grid-cols-[1fr_140px_100px_40px] gap-3 items-end">
+              <div key={i} className="grid grid-cols-[1fr_120px_100px_40px] gap-3 items-end">
                 <div className="space-y-1.5">
                   {i === 0 && <Label>Product</Label>}
                   <Select value={inp.productId} onValueChange={v => updateInput(i, "productId", v)}>
@@ -145,7 +165,10 @@ export default function ProductionNew() {
                 </div>
                 <div className="space-y-1.5">
                   {i === 0 && <Label>Unit</Label>}
-                  <Input value={inp.unit} onChange={e => updateInput(i, "unit", e.target.value)} placeholder="KG" data-testid={`input-unit-${i}`} />
+                  <Select value={inp.unit} onValueChange={v => updateInput(i, "unit", v)}>
+                    <SelectTrigger data-testid={`input-unit-${i}`}><SelectValue /></SelectTrigger>
+                    <SelectContent>{BATCH_UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+                  </Select>
                 </div>
                 <Button type="button" variant="ghost" size="icon" onClick={() => removeInput(i)} disabled={inputs.length === 1} data-testid={`button-remove-${i}`}>
                   <Trash2 className="h-4 w-4 text-destructive" />

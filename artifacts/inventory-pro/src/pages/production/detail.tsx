@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { useGetProductionBatch, useCompleteProductionBatch, getListProductionBatchesQueryKey, useListProducts } from "@workspace/api-client-react";
+import { BATCH_UNITS } from "./new";
 import { useQueryClient } from "@tanstack/react-query";
 import { useLocation } from "wouter";
 import { Button } from "@/components/ui/button";
@@ -140,16 +141,18 @@ export default function ProductionDetail({ id }: { id: string }) {
 
       <div className="grid grid-cols-2 md:grid-cols-5 gap-4">
         {[
-          { label: "Planned Output", value: planned },
-          { label: "Actual Output", value: actual ?? "—" },
-          { label: "Wastage", value: wastage ?? "—" },
+          { label: "Planned Output", value: planned, unit: batch.outputUnit },
+          { label: "Actual Output", value: actual ?? "—", unit: actual ? batch.outputUnit : undefined },
+          { label: "Wastage", value: wastage ?? "—", unit: wastage ? batch.outputUnit : undefined },
           { label: "Yield %", value: yieldPct ? `${yieldPct}%` : "—" },
           { label: "Wastage %", value: wastagePct ? `${wastagePct}%` : "—" },
-        ].map(({ label, value }) => (
+        ].map(({ label, value, unit }: { label: string; value: string | number; unit?: string }) => (
           <Card key={label}>
             <CardContent className="pt-4">
               <p className="text-xs text-muted-foreground">{label}</p>
-              <p className="text-lg font-bold mt-1" data-testid={`text-${label.toLowerCase().replace(/\s+/g, "-")}`}>{value}</p>
+              <p className="text-lg font-bold mt-1" data-testid={`text-${label.toLowerCase().replace(/\s+/g, "-")}`}>
+                {value}{unit ? <span className="text-sm font-normal text-muted-foreground ml-1">{unit}</span> : null}
+              </p>
             </CardContent>
           </Card>
         ))}
@@ -209,11 +212,17 @@ export default function ProductionDetail({ id }: { id: string }) {
             <div className="grid grid-cols-2 gap-4">
               <div className="space-y-1.5">
                 <Label>Actual Output Qty *</Label>
-                <Input type="number" min="0" step="0.001" value={actualOutputQty} onChange={e => setActualOutputQty(e.target.value)} placeholder="0.000" data-testid="input-actual-qty" />
+                <div className="flex gap-2 items-center">
+                  <Input type="number" min="0" step="0.001" value={actualOutputQty} onChange={e => setActualOutputQty(e.target.value)} placeholder="0.000" data-testid="input-actual-qty" className="flex-1" />
+                  <span className="text-sm font-medium text-muted-foreground bg-muted px-3 py-2 rounded-md border border-input min-w-[56px] text-center">{batch.outputUnit}</span>
+                </div>
               </div>
               <div className="space-y-1.5">
                 <Label>Wastage Qty *</Label>
-                <Input type="number" min="0" step="0.001" value={wastageQty} onChange={e => setWastageQty(e.target.value)} placeholder="0.000" data-testid="input-wastage-qty" />
+                <div className="flex gap-2 items-center">
+                  <Input type="number" min="0" step="0.001" value={wastageQty} onChange={e => setWastageQty(e.target.value)} placeholder="0.000" data-testid="input-wastage-qty" className="flex-1" />
+                  <span className="text-sm font-medium text-muted-foreground bg-muted px-3 py-2 rounded-md border border-input min-w-[56px] text-center">{batch.outputUnit}</span>
+                </div>
               </div>
             </div>
 
@@ -226,13 +235,16 @@ export default function ProductionDetail({ id }: { id: string }) {
                 </Button>
               </div>
               {outputs.map((out, i) => (
-                <div key={i} className="grid grid-cols-[1fr_140px_100px_40px] gap-3 items-end mb-3">
+                <div key={i} className="grid grid-cols-[1fr_130px_110px_40px] gap-3 items-end mb-3">
                   <Select value={out.productId} onValueChange={v => updateOutput(i, "productId", v)}>
                     <SelectTrigger data-testid={`select-output-product-${i}`}><SelectValue placeholder="Product" /></SelectTrigger>
                     <SelectContent>{(productsData?.data ?? []).map((p: any) => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}</SelectContent>
                   </Select>
                   <Input type="number" min="0.001" step="0.001" value={out.quantity} onChange={e => updateOutput(i, "quantity", e.target.value)} placeholder="0.000" data-testid={`input-output-qty-${i}`} />
-                  <Input value={out.unit} onChange={e => updateOutput(i, "unit", e.target.value)} placeholder="KG" data-testid={`input-output-unit-${i}`} />
+                  <Select value={out.unit} onValueChange={v => updateOutput(i, "unit", v)}>
+                    <SelectTrigger data-testid={`input-output-unit-${i}`}><SelectValue /></SelectTrigger>
+                    <SelectContent>{BATCH_UNITS.map(u => <SelectItem key={u} value={u}>{u}</SelectItem>)}</SelectContent>
+                  </Select>
                   <Button type="button" variant="ghost" size="icon" onClick={() => removeOutput(i)} disabled={outputs.length === 1}>
                     <Trash2 className="h-4 w-4 text-destructive" />
                   </Button>

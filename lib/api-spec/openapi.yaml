@@ -2291,6 +2291,8 @@ components:
           type: integer
         plannedOutputQty:
           type: number
+        outputUnit:
+          type: string
         actualOutputQty:
           type: ["number", "null"]
         wastageQty:
@@ -2357,6 +2359,8 @@ components:
           type: integer
         plannedOutputQty:
           type: number
+        outputUnit:
+          type: string
         productionDate:
           type: ["string", "null"]
         responsibleUserId:

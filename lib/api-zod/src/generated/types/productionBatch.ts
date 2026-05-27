@@ -17,6 +17,7 @@ export interface ProductionBatch {
   stageFromStoreId: number;
   stageToStoreId: number;
   plannedOutputQty: number;
+  outputUnit?: string;
   /** @nullable */
   actualOutputQty?: number | null;
   /** @nullable */

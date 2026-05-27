@@ -82,8 +82,8 @@ export default function ProductionList() {
                     <TableCell className="font-mono text-sm font-semibold">{b.batchNumber}</TableCell>
                     <TableCell className="text-sm">{b.type === "raw_to_semi" ? "Raw → Semi" : "Semi → Finished"}</TableCell>
                     <TableCell><Badge variant={STATUS_BADGE[b.status] as any}>{b.status.replace(/_/g, " ")}</Badge></TableCell>
-                    <TableCell className="text-right">{b.plannedOutputQty}</TableCell>
-                    <TableCell className="text-right">{b.actualOutputQty ?? "—"}</TableCell>
+                    <TableCell className="text-right">{b.plannedOutputQty} <span className="text-muted-foreground text-xs">{b.outputUnit}</span></TableCell>
+                    <TableCell className="text-right">{b.actualOutputQty ? <>{b.actualOutputQty} <span className="text-muted-foreground text-xs">{b.outputUnit}</span></> : "—"}</TableCell>
                     <TableCell className="text-right">{b.yieldPercent ? `${parseFloat(b.yieldPercent).toFixed(1)}%` : "—"}</TableCell>
                     <TableCell className="text-right">{b.wastagePercent ? `${parseFloat(b.wastagePercent).toFixed(1)}%` : "—"}</TableCell>
                     <TableCell className="text-muted-foreground text-sm">{b.productionDate ?? new Date(b.createdAt).toLocaleDateString()}</TableCell>

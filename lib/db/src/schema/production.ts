@@ -14,6 +14,7 @@ export const productionBatchesTable = pgTable("production_batches", {
   wastageQty: numeric("wastage_qty", { precision: 12, scale: 3 }),
   wastagePercent: numeric("wastage_percent", { precision: 7, scale: 2 }),
   yieldPercent: numeric("yield_percent", { precision: 7, scale: 2 }),
+  outputUnit: text("output_unit").notNull().default("KG"),
   productionDate: text("production_date"),
   completedAt: timestamp("completed_at"),
   responsibleUserId: integer("responsible_user_id"),

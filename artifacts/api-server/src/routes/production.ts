@@ -25,7 +25,7 @@ router.get("/production-batches", requireAuth, async (req, res): Promise<void> =
 });
 
 router.post("/production-batches", requireAuth, requirePermission("can_create_batch_production"), async (req, res): Promise<void> => {
-  const { type, stageFromStoreId, stageToStoreId, plannedOutputQty, productionDate, responsibleUserId, notes, inputMaterials } = req.body;
+  const { type, stageFromStoreId, stageToStoreId, plannedOutputQty, outputUnit, productionDate, responsibleUserId, notes, inputMaterials } = req.body;
   if (!type || !stageFromStoreId || !stageToStoreId || !plannedOutputQty) {
     res.status(400).json({ error: "Missing required fields" });
     return;
@@ -33,6 +33,7 @@ router.post("/production-batches", requireAuth, requirePermission("can_create_ba
   const batchNumber = await nextBatchNumber();
   const [batch] = await db.insert(productionBatchesTable).values({
     batchNumber, type, stageFromStoreId, stageToStoreId, plannedOutputQty: plannedOutputQty.toString(),
+    outputUnit: outputUnit ?? "KG",
     productionDate: productionDate ?? null, responsibleUserId: responsibleUserId ?? null, notes: notes ?? null,
   }).returning();
 
