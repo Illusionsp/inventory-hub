@@ -18,6 +18,11 @@ export const productionBatchesTable = pgTable("production_batches", {
   completedAt: timestamp("completed_at"),
   responsibleUserId: integer("responsible_user_id"),
   notes: text("notes"),
+  finalProductName: text("final_product_name"),
+  packageType: text("package_type"),
+  packageSize: numeric("package_size", { precision: 10, scale: 3 }),
+  packageSizeUnit: text("package_size_unit"),
+  packagesProduced: numeric("packages_produced", { precision: 12, scale: 3 }),
   createdAt: timestamp("created_at").notNull().defaultNow(),
   updatedAt: timestamp("updated_at").notNull().defaultNow(),
 });

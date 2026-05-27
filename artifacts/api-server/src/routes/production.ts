@@ -1,6 +1,6 @@
 import { Router } from "express";
-import { eq, and, SQL } from "drizzle-orm";
-import { db, productionBatchesTable, productionInputsTable, productionOutputsTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
+import { eq, and, SQL, ilike } from "drizzle-orm";
+import { db, productionBatchesTable, productionInputsTable, productionOutputsTable, productsTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
 import { requireAuth, requirePermission } from "../lib/auth";
 
 const router = Router();
@@ -60,9 +60,23 @@ router.get("/production-batches/:id", requireAuth, async (req, res): Promise<voi
   res.json({ ...batch, responsibleUserName: null, inputMaterials: inputs, outputProducts: outputs });
 });
 
+// Helper: convert a quantity in `fromUnit` to `toUnit` (g↔kg, ml↔L only)
+function convertUnit(qty: number, fromUnit: string, toUnit: string): number {
+  const from = fromUnit.toLowerCase();
+  const to = toUnit.toLowerCase();
+  if (from === to) return qty;
+  if (from === "g" && to === "kg") return qty / 1000;
+  if (from === "kg" && to === "g") return qty * 1000;
+  if (from === "ml" && to === "l") return qty / 1000;
+  if (from === "l" && to === "ml") return qty * 1000;
+  if (from === "mg" && to === "g") return qty / 1000;
+  if (from === "g" && to === "mg") return qty * 1000;
+  return qty; // no conversion known — assume same unit
+}
+
 router.post("/production-batches/:id/complete", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
-  const { actualOutputQty, wastageQty, notes, outputProducts } = req.body;
+  const { actualOutputQty, wastageQty, notes, outputProducts, finalProductName, packageType, packageSize, packageSizeUnit, packagesProduced } = req.body;
   const [batch] = await db.select().from(productionBatchesTable).where(eq(productionBatchesTable.id, id));
   if (!batch) { res.status(404).json({ error: "Not found" }); return; }
 
@@ -72,11 +86,24 @@ router.post("/production-batches/:id/complete", requireAuth, async (req, res): P
   const yieldPct = ((actual / plannedQty) * 100).toFixed(2);
   const wastagePct = ((wastage / plannedQty) * 100).toFixed(2);
 
+  const hasPackaging = finalProductName && packageType && packageSize && packageSizeUnit && packagesProduced;
+
   const [updated] = await db.update(productionBatchesTable).set({
-    status: "completed", actualOutputQty: actualOutputQty.toString(), wastageQty: wastageQty.toString(),
-    wastagePercent: wastagePct, yieldPercent: yieldPct, completedAt: new Date(), notes: notes ?? batch.notes,
+    status: "completed",
+    actualOutputQty: actualOutputQty.toString(),
+    wastageQty: wastageQty.toString(),
+    wastagePercent: wastagePct,
+    yieldPercent: yieldPct,
+    completedAt: new Date(),
+    notes: notes ?? batch.notes,
+    finalProductName: finalProductName ?? null,
+    packageType: packageType ?? null,
+    packageSize: packageSize != null ? packageSize.toString() : null,
+    packageSizeUnit: packageSizeUnit ?? null,
+    packagesProduced: packagesProduced != null ? packagesProduced.toString() : null,
   }).where(eq(productionBatchesTable.id, id)).returning();
 
+  // ── Bulk output products ──────────────────────────────────────────────────
   for (const out of (outputProducts ?? [])) {
     await db.insert(productionOutputsTable).values({ batchId: id, productId: out.productId, quantity: out.quantity.toString(), unit: out.unit });
     const [inv] = await db.select().from(inventoryTable).where(and(eq(inventoryTable.productId, out.productId), eq(inventoryTable.storeId, batch.stageToStoreId)));
@@ -87,6 +114,63 @@ router.post("/production-batches/:id/complete", requireAuth, async (req, res): P
       await db.insert(inventoryTable).values({ productId: out.productId, storeId: batch.stageToStoreId, quantity: out.quantity.toString() });
     }
     await db.insert(inventoryMovementsTable).values({ productId: out.productId, storeId: batch.stageToStoreId, movementType: "production_output", quantity: out.quantity.toString(), referenceId: id, referenceType: "production_batch", createdBy: req.session.userId });
+  }
+
+  // ── Packaging conversion ──────────────────────────────────────────────────
+  if (hasPackaging) {
+    const pkgSize = parseFloat(packageSize.toString());
+    const pkgCount = parseFloat(packagesProduced.toString());
+
+    // Build canonical packaged product name, e.g. "Raw Honey 100g bottle"
+    const pkgProductName = `${String(finalProductName).trim()} ${pkgSize}${String(packageSizeUnit).trim()} ${String(packageType).trim()}`;
+
+    // Find or auto-create the packaged product
+    let pkgProductId: number;
+    const [foundPkg] = await db.select({ id: productsTable.id }).from(productsTable).where(ilike(productsTable.name, pkgProductName));
+    if (foundPkg) {
+      pkgProductId = foundPkg.id;
+    } else {
+      const [created] = await db.insert(productsTable).values({
+        name: pkgProductName,
+        type: "finished_good",
+        unit: "pcs",
+        reorderLevel: "0",
+      }).returning({ id: productsTable.id });
+      pkgProductId = created.id;
+    }
+
+    // Deduct bulk consumed from each bulk output (pro-rata across outputs)
+    // Total bulk consumed = packagesProduced * packageSize, converted to the bulk output unit
+    const bulkOutputs = outputProducts ?? [];
+    if (bulkOutputs.length > 0) {
+      const totalBulkQty = bulkOutputs.reduce((sum: number, o: any) => sum + parseFloat(o.quantity.toString()), 0);
+      const bulkUnit = bulkOutputs[0].unit as string; // all outputs assumed same unit
+
+      // Convert total packaged mass/volume to bulk unit
+      const totalBulkConsumed = convertUnit(pkgCount * pkgSize, String(packageSizeUnit), bulkUnit);
+      // Distribute deduction proportionally across outputs
+      const ratio = totalBulkQty > 0 ? Math.min(totalBulkConsumed / totalBulkQty, 1) : 0;
+
+      for (const out of bulkOutputs) {
+        const deduct = parseFloat(out.quantity.toString()) * ratio;
+        const [inv] = await db.select().from(inventoryTable).where(and(eq(inventoryTable.productId, out.productId), eq(inventoryTable.storeId, batch.stageToStoreId)));
+        if (inv) {
+          const newQty = Math.max(0, parseFloat(inv.quantity as string) - deduct).toString();
+          await db.update(inventoryTable).set({ quantity: newQty, updatedAt: new Date() }).where(eq(inventoryTable.id, inv.id));
+        }
+        await db.insert(inventoryMovementsTable).values({ productId: out.productId, storeId: batch.stageToStoreId, movementType: "packaging_input", quantity: (-deduct).toString(), referenceId: id, referenceType: "production_batch", createdBy: req.session.userId });
+      }
+    }
+
+    // Add packaged units to inventory
+    const [pkgInv] = await db.select().from(inventoryTable).where(and(eq(inventoryTable.productId, pkgProductId), eq(inventoryTable.storeId, batch.stageToStoreId)));
+    if (pkgInv) {
+      const newQty = (parseFloat(pkgInv.quantity as string) + pkgCount).toString();
+      await db.update(inventoryTable).set({ quantity: newQty, updatedAt: new Date() }).where(eq(inventoryTable.id, pkgInv.id));
+    } else {
+      await db.insert(inventoryTable).values({ productId: pkgProductId, storeId: batch.stageToStoreId, quantity: pkgCount.toString() });
+    }
+    await db.insert(inventoryMovementsTable).values({ productId: pkgProductId, storeId: batch.stageToStoreId, movementType: "packaging_output", quantity: pkgCount.toString(), referenceId: id, referenceType: "production_batch", createdBy: req.session.userId });
   }
 
   const inputs = await db.select().from(productionInputsTable).where(eq(productionInputsTable.batchId, id));

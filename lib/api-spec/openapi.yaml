@@ -2309,6 +2309,16 @@ components:
           type: ["string", "null"]
         notes:
           type: ["string", "null"]
+        finalProductName:
+          type: ["string", "null"]
+        packageType:
+          type: ["string", "null"]
+        packageSize:
+          type: ["number", "null"]
+        packageSizeUnit:
+          type: ["string", "null"]
+        packagesProduced:
+          type: ["number", "null"]
         inputMaterials:
           type: array
           items:
@@ -2372,6 +2382,16 @@ components:
           type: array
           items:
             $ref: "#/components/schemas/ProductionInput"
+        finalProductName:
+          type: ["string", "null"]
+        packageType:
+          type: ["string", "null"]
+        packageSize:
+          type: ["number", "null"]
+        packageSizeUnit:
+          type: ["string", "null"]
+        packagesProduced:
+          type: ["number", "null"]
 
     # SALE
     SaleItem:

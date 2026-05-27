@@ -1345,6 +1345,11 @@ export const ListProductionBatchesResponse = zod.object({
   "responsibleUserId": zod.number().nullish(),
   "responsibleUserName": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "finalProductName": zod.string().nullish(),
+  "packageType": zod.string().nullish(),
+  "packageSize": zod.number().nullish(),
+  "packageSizeUnit": zod.string().nullish(),
+  "packagesProduced": zod.number().nullish(),
   "inputMaterials": zod.array(zod.object({
   "productId": zod.number(),
   "productName": zod.string().nullish(),
@@ -1403,6 +1408,11 @@ export const GetProductionBatchResponse = zod.object({
   "responsibleUserId": zod.number().nullish(),
   "responsibleUserName": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "finalProductName": zod.string().nullish(),
+  "packageType": zod.string().nullish(),
+  "packageSize": zod.number().nullish(),
+  "packageSizeUnit": zod.string().nullish(),
+  "packagesProduced": zod.number().nullish(),
   "inputMaterials": zod.array(zod.object({
   "productId": zod.number(),
   "productName": zod.string().nullish(),
@@ -1432,7 +1442,12 @@ export const CompleteProductionBatchBody = zod.object({
   "productName": zod.string().nullish(),
   "quantity": zod.number(),
   "unit": zod.string()
-}))
+})),
+  "finalProductName": zod.string().nullish(),
+  "packageType": zod.string().nullish(),
+  "packageSize": zod.number().nullish(),
+  "packageSizeUnit": zod.string().nullish(),
+  "packagesProduced": zod.number().nullish()
 })
 
 export const CompleteProductionBatchResponse = zod.object({
@@ -1452,6 +1467,11 @@ export const CompleteProductionBatchResponse = zod.object({
   "responsibleUserId": zod.number().nullish(),
   "responsibleUserName": zod.string().nullish(),
   "notes": zod.string().nullish(),
+  "finalProductName": zod.string().nullish(),
+  "packageType": zod.string().nullish(),
+  "packageSize": zod.number().nullish(),
+  "packageSizeUnit": zod.string().nullish(),
+  "packagesProduced": zod.number().nullish(),
   "inputMaterials": zod.array(zod.object({
   "productId": zod.number(),
   "productName": zod.string().nullish(),

@@ -35,6 +35,16 @@ export interface ProductionBatch {
   responsibleUserName?: string | null;
   /** @nullable */
   notes?: string | null;
+  /** @nullable */
+  finalProductName?: string | null;
+  /** @nullable */
+  packageType?: string | null;
+  /** @nullable */
+  packageSize?: number | null;
+  /** @nullable */
+  packageSizeUnit?: string | null;
+  /** @nullable */
+  packagesProduced?: number | null;
   inputMaterials?: ProductionInput[];
   outputProducts?: ProductionInput[];
   createdAt: string;
