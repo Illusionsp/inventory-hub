@@ -5,6 +5,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import { useLocation } from "wouter";
 import { useLogin, useGetMe } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
+import { AUTH_BROADCAST_CHANNEL } from "@/lib/auth";
 import {
   Form,
   FormControl,
@@ -51,6 +52,13 @@ export default function Login() {
         // shared cookie that other tabs may overwrite when they log in.
         if (data?.token) {
           sessionStorage.setItem("tab_session", data.token);
+        }
+        // Notify any other open tabs that auth state changed so they can
+        // immediately refetch /auth/me with their own bearer token.
+        if (typeof BroadcastChannel !== "undefined") {
+          const ch = new BroadcastChannel(AUTH_BROADCAST_CHANNEL);
+          ch.postMessage({ type: "auth_change", event: "login" });
+          ch.close();
         }
         queryClient.invalidateQueries();
         setLocation("/dashboard");

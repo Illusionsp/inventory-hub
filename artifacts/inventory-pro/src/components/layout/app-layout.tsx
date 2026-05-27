@@ -2,6 +2,7 @@ import React from "react";
 import { Link, useLocation } from "wouter";
 import { useAuth } from "@/lib/auth";
 import { useLogout, useListNotifications } from "@workspace/api-client-react";
+import { AUTH_BROADCAST_CHANNEL } from "@/lib/auth";
 import { useQueryClient } from "@tanstack/react-query";
 import {
   Sidebar,
@@ -134,6 +135,13 @@ export function AppLayout({ children }: { children: React.ReactNode }) {
     mutation: {
       onSuccess: () => {
         sessionStorage.removeItem("tab_session");
+        // Notify other open tabs that this tab logged out so they can
+        // immediately refetch /auth/me and update their own auth state.
+        if (typeof BroadcastChannel !== "undefined") {
+          const ch = new BroadcastChannel(AUTH_BROADCAST_CHANNEL);
+          ch.postMessage({ type: "auth_change", event: "logout" });
+          ch.close();
+        }
         queryClient.clear();
         window.location.href = "/login";
       },

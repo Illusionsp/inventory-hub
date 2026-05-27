@@ -66,7 +66,13 @@ router.get("/auth/me", requireAuth, async (req, res): Promise<void> => {
   const { passwordHash: _, ...safeUser } = user;
   // Return effective permissions (already computed by requireAuth → refreshUserData)
   // so the frontend always gets a non-null string[] regardless of role defaults.
-  res.json({ ...safeUser, permissions: req.session.userPermissions ?? [] });
+  // sessionId lets a tab that loaded via the shared cookie "adopt" its own bearer
+  // token so it becomes isolated from future cookie changes by other tabs.
+  res.json({
+    ...safeUser,
+    permissions: req.session.userPermissions ?? [],
+    sessionId: req.sessionID,
+  });
 });
 
 export default router;
