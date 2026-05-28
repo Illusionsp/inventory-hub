@@ -27,7 +27,7 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
 
   const conditions: SQL[] = [
     gte(salesTable.saleDate, dateFrom),
-    lte(salesTable.saleDate, dateTo),
+    lte(salesTable.saleDate, `${dateTo} 23:59:59`),
   ];
   if (paymentType) conditions.push(eq(salesTable.paymentType, paymentType));
   if (paymentMethod) conditions.push(eq(salesTable.paymentMethod, paymentMethod));
@@ -156,8 +156,8 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
 
   // Only completed batches have wastage data
   const conditions: SQL[] = [eq(productionBatchesTable.status, "completed")];
-  if (from) conditions.push(gte(productionBatchesTable.productionDate, dateFrom));
-  if (to)   conditions.push(lte(productionBatchesTable.productionDate, dateTo));
+  if (from) conditions.push(gte(sql`${productionBatchesTable.completedAt}::text`, dateFrom));
+  if (to) conditions.push(lte(sql`${productionBatchesTable.completedAt}::text`, `${dateTo} 23:59:59`));
   if (storeId) {
     const sid = parseInt(storeId, 10);
     conditions.push(or(
@@ -195,16 +195,16 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
   // Fetch inputs for all batches (joined with product names)
   const allInputs = batchIds.length > 0
     ? await db
-        .select({
-          batchId: productionInputsTable.batchId,
-          productId: productionInputsTable.productId,
-          quantity: productionInputsTable.quantity,
-          unit: productionInputsTable.unit,
-          productName: productsTable.name,
-        })
-        .from(productionInputsTable)
-        .leftJoin(productsTable, eq(productionInputsTable.productId, productsTable.id))
-        .where(inArray(productionInputsTable.batchId, batchIds))
+      .select({
+        batchId: productionInputsTable.batchId,
+        productId: productionInputsTable.productId,
+        quantity: productionInputsTable.quantity,
+        unit: productionInputsTable.unit,
+        productName: productsTable.name,
+      })
+      .from(productionInputsTable)
+      .leftJoin(productsTable, eq(productionInputsTable.productId, productsTable.id))
+      .where(inArray(productionInputsTable.batchId, batchIds))
     : [];
 
   // Optional product filter — keep only batches that used this input product

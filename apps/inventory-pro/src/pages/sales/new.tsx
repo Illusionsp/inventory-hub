@@ -57,7 +57,10 @@ export default function SalesNew() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerId || !saleDate || !paymentType) { toast({ title: "Fill required fields", variant: "destructive" }); return; }
+    if (!customerId || !saleDate || !paymentType || !storeId || items.length === 0) {
+      toast({ title: "Please fill all required fields, including dispatch store", variant: "destructive" });
+      return;
+    }
 
     createSale.mutate({
       data: {
