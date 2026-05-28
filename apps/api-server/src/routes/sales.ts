@@ -73,6 +73,8 @@ router.post("/sales", requireAuth, async (req, res): Promise<void> => {
       if (inv) {
         const newQty = Math.max(0, parseFloat(inv.quantity as string) - parseFloat(item.quantity.toString())).toString();
         await db.update(inventoryTable).set({ quantity: newQty, updatedAt: new Date() }).where(eq(inventoryTable.id, inv.id));
+      } else {
+        await db.insert(inventoryTable).values({ productId: item.productId, storeId, quantity: (-parseFloat(item.quantity.toString())).toString() });
       }
       await db.insert(inventoryMovementsTable).values({ productId: item.productId, storeId, movementType: "sale", quantity: (-parseFloat(item.quantity.toString())).toString(), referenceId: sale.id, referenceType: "sale", createdBy: req.session.userId });
     }

@@ -131,6 +131,7 @@ export default function ProductionDetail({ id }: { id: string }) {
       onSuccess: () => {
         toast({ title: "Production batch completed" });
         queryClient.invalidateQueries({ queryKey: getListProductionBatchesQueryKey() });
+        queryClient.invalidateQueries({ queryKey: ["wastageReport"] });
       },
       onError: () => toast({ title: "Failed to complete batch", variant: "destructive" }),
     });
@@ -197,10 +198,12 @@ export default function ProductionDetail({ id }: { id: string }) {
               { label: "Final Product", value: batch.finalProductName ?? "—" },
               { label: "Package", value: pkgLabel ?? "—" },
               { label: "Packages Produced", value: parseFloat(String(batch.packagesProduced)).toLocaleString() + " pcs" },
-              { label: "Total Packaged", value: (() => {
-                const total = parseFloat(String(batch.packagesProduced)) * parseFloat(String(batch.packageSize));
-                return `${total.toLocaleString()} ${batch.packageSizeUnit}`;
-              })() },
+              {
+                label: "Total Packaged", value: (() => {
+                  const total = parseFloat(String(batch.packagesProduced)) * parseFloat(String(batch.packageSize));
+                  return `${total.toLocaleString()} ${batch.packageSizeUnit}`;
+                })()
+              },
             ].map(({ label, value }) => (
               <div key={label}>
                 <p className="text-xs text-muted-foreground">{label}</p>

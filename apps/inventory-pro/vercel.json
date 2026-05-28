@@ -3,6 +3,10 @@
         {
             "source": "/api/:path*",
             "destination": "https://inventory-hub-itdv.onrender.com/api/:path*"
+        },
+        {
+            "source": "/(.*)",
+            "destination": "/index.html"
         }
     ]
 }

@@ -82,6 +82,7 @@ export default function SalesNew() {
       onSuccess: (res: any) => {
         toast({ title: "Invoice created" });
         queryClient.invalidateQueries({ queryKey: getListSalesQueryKey() });
+        queryClient.invalidateQueries({ queryKey: ["salesReport"] });
         setLocation(`/sales/${res.id}`);
       },
       onError: () => toast({ title: "Failed to create invoice", variant: "destructive" }),
@@ -157,9 +158,8 @@ export default function SalesNew() {
             <div className="space-y-1.5">
               <Label>Dispatch Store</Label>
               <Select value={storeId} onValueChange={setStoreId}>
-                <SelectTrigger><SelectValue placeholder="Select store (optional)" /></SelectTrigger>
+                <SelectTrigger><SelectValue placeholder="Select store" /></SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="none">None</SelectItem>
                   {(stores ?? []).map(s => <SelectItem key={s.id} value={String(s.id)}>{s.name}</SelectItem>)}
                 </SelectContent>
               </Select>
