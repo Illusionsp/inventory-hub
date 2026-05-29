@@ -122,6 +122,17 @@ router.get("/store-requests/:id", requireAuth, async (req, res): Promise<void> =
 
 router.post("/store-requests/:id/approve", requireAuth, requirePermission("can_approve_store_requests"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+  
+  // Guard: Ensure user manages the receiving store
+  const [existingReq] = await db.select().from(storeRequestsTable).where(eq(storeRequestsTable.id, id));
+  if (!existingReq) { res.status(404).json({ error: "Not found" }); return; }
+  
+  const userStoreId = await getUserStoreId(req.session.userId!);
+  if (req.session.userRole === "store_manager" && userStoreId !== existingReq.receivingStoreId) {
+    res.status(403).json({ error: "Unauthorized: You can only approve requests directed to your assigned store." });
+    return;
+  }
+
   const [request] = await db
     .update(storeRequestsTable)
     .set({ status: "approved", updatedAt: new Date() })
@@ -141,6 +152,17 @@ router.post("/store-requests/:id/approve", requireAuth, requirePermission("can_a
 
 router.post("/store-requests/:id/reject", requireAuth, requirePermission("can_approve_store_requests"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+  
+  // Guard: Ensure user manages the receiving store
+  const [existingReq] = await db.select().from(storeRequestsTable).where(eq(storeRequestsTable.id, id));
+  if (!existingReq) { res.status(404).json({ error: "Not found" }); return; }
+  
+  const userStoreId = await getUserStoreId(req.session.userId!);
+  if (req.session.userRole === "store_manager" && userStoreId !== existingReq.receivingStoreId) {
+    res.status(403).json({ error: "Unauthorized: You can only reject requests directed to your assigned store." });
+    return;
+  }
+
   const { reason } = req.body;
   const [request] = await db
     .update(storeRequestsTable)
@@ -161,6 +183,17 @@ router.post("/store-requests/:id/reject", requireAuth, requirePermission("can_ap
 
 router.post("/store-requests/:id/send", requireAuth, requirePermission("can_approve_dispatch"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+  
+  // Guard: Ensure user manages the dispatching (receiving) store
+  const [existingReq] = await db.select().from(storeRequestsTable).where(eq(storeRequestsTable.id, id));
+  if (!existingReq) { res.status(404).json({ error: "Not found" }); return; }
+  
+  const userStoreId = await getUserStoreId(req.session.userId!);
+  if (req.session.userRole === "store_manager" && userStoreId !== existingReq.receivingStoreId) {
+    res.status(403).json({ error: "Unauthorized: You can only dispatch items from your assigned store." });
+    return;
+  }
+
   const [request] = await db
     .update(storeRequestsTable)
     .set({ status: "sent", sentAt: new Date(), updatedAt: new Date() })
@@ -221,6 +254,17 @@ router.post("/store-requests/:id/send", requireAuth, requirePermission("can_appr
 
 router.post("/store-requests/:id/receive", requireAuth, requirePermission("can_receive_items"), async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
+  
+  // Guard: Ensure user manages the destination (requesting) store
+  const [existingReq] = await db.select().from(storeRequestsTable).where(eq(storeRequestsTable.id, id));
+  if (!existingReq) { res.status(404).json({ error: "Not found" }); return; }
+  
+  const userStoreId = await getUserStoreId(req.session.userId!);
+  if (req.session.userRole === "store_manager" && userStoreId !== existingReq.requestingStoreId) {
+    res.status(403).json({ error: "Unauthorized: You can only receive items directed to your assigned store." });
+    return;
+  }
+
   const [request] = await db
     .update(storeRequestsTable)
     .set({ status: "received", receivedAt: new Date(), updatedAt: new Date() })

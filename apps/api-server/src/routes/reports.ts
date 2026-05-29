@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, gte, lte, or, inArray, SQL } from "drizzle-orm";
+import { eq, and, gte, lte, or, inArray, SQL, desc } from "drizzle-orm";
 import {
   db,
   salesTable, customersTable,
@@ -55,11 +55,12 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
       totalAmount: salesTable.totalAmount,
       paidAmount: salesTable.paidAmount,
       balanceDue: salesTable.balanceDue,
+      createdAt: salesTable.createdAt,
     })
     .from(salesTable)
     .leftJoin(customersTable, eq(salesTable.customerId, customersTable.id))
     .where(where)
-    .orderBy(salesTable.saleDate);
+    .orderBy(desc(salesTable.saleDate), desc(salesTable.createdAt)); // Native DB sort descending
 
   let totalRevenue = 0;
   let cashRevenue = 0;
@@ -142,7 +143,7 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
       totalAmount: parseFloat(String(r.totalAmount || 0)),
       paidAmount: parseFloat(String(r.paidAmount || 0)),
       balanceDue: parseFloat(String(r.balanceDue || 0)),
-    })).reverse(),
+    })), // Removed .reverse() 
   });
 });
 

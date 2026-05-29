@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, ilike, SQL } from "drizzle-orm";
+import { eq, and, ilike, SQL, desc, gte, lte } from "drizzle-orm";
 import { db, salesTable, saleItemsTable, customersTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
 import { requireAuth } from "../lib/auth";
 import { notifyByPermission } from "../lib/notify";
@@ -12,7 +12,7 @@ async function nextInvoiceNumber(): Promise<string> {
 }
 
 router.get("/sales", requireAuth, async (req, res): Promise<void> => {
-  const { status, customerId, search, page = "1", limit = "20" } = req.query as Record<string, string>;
+  const { status, customerId, search, from, to, page = "1", limit = "20" } = req.query as Record<string, string>;
   const pageNum = parseInt(page, 10);
   const limitNum = parseInt(limit, 10);
   const offset = (pageNum - 1) * limitNum;
@@ -21,14 +21,43 @@ router.get("/sales", requireAuth, async (req, res): Promise<void> => {
   if (status) conditions.push(eq(salesTable.status, status));
   if (customerId) conditions.push(eq(salesTable.customerId, parseInt(customerId, 10)));
   if (search) conditions.push(ilike(salesTable.invoiceNumber, `%${search}%`));
+  
+  // Date range filters to match the sales report exactly
+  if (from) conditions.push(gte(salesTable.saleDate, from));
+  if (to) conditions.push(lte(salesTable.saleDate, `${to} 23:59:59`));
+
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const rows = await db
-    .select({ id: salesTable.id, invoiceNumber: salesTable.invoiceNumber, saleDate: salesTable.saleDate, customerId: salesTable.customerId, customerName: customersTable.name, fsNumber: salesTable.fsNumber, paymentType: salesTable.paymentType, paymentMethod: salesTable.paymentMethod, status: salesTable.status, subtotal: salesTable.subtotal, vatApplicable: salesTable.vatApplicable, vatAmount: salesTable.vatAmount, withholdingAmount: salesTable.withholdingAmount, discountAmount: salesTable.discountAmount, totalAmount: salesTable.totalAmount, paidAmount: salesTable.paidAmount, balanceDue: salesTable.balanceDue, dueDate: salesTable.dueDate, salespersonId: salesTable.salespersonId, storeId: salesTable.storeId, remarks: salesTable.remarks, createdAt: salesTable.createdAt })
+    .select({ 
+      id: salesTable.id, 
+      invoiceNumber: salesTable.invoiceNumber, 
+      saleDate: salesTable.saleDate, 
+      customerId: salesTable.customerId, 
+      customerName: customersTable.name, 
+      fsNumber: salesTable.fsNumber, 
+      paymentType: salesTable.paymentType, 
+      paymentMethod: salesTable.paymentMethod, 
+      status: salesTable.status, 
+      subtotal: salesTable.subtotal, 
+      vatApplicable: salesTable.vatApplicable, 
+      vatAmount: salesTable.vatAmount, 
+      withholdingAmount: salesTable.withholdingAmount, 
+      discountAmount: salesTable.discountAmount, 
+      totalAmount: salesTable.totalAmount, 
+      paidAmount: salesTable.paidAmount, 
+      balanceDue: salesTable.balanceDue, 
+      dueDate: salesTable.dueDate, 
+      salespersonId: salesTable.salespersonId, 
+      storeId: salesTable.storeId, 
+      remarks: salesTable.remarks, 
+      createdAt: salesTable.createdAt 
+    })
     .from(salesTable)
     .leftJoin(customersTable, eq(salesTable.customerId, customersTable.id))
     .where(where)
-    .orderBy(salesTable.createdAt)
+    // Synchronized sorting with reports.ts
+    .orderBy(desc(salesTable.saleDate), desc(salesTable.createdAt))
     .limit(limitNum)
     .offset(offset);
 
@@ -104,7 +133,30 @@ router.post("/sales", requireAuth, async (req, res): Promise<void> => {
 router.get("/sales/:id", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const [sale] = await db
-    .select({ id: salesTable.id, invoiceNumber: salesTable.invoiceNumber, saleDate: salesTable.saleDate, customerId: salesTable.customerId, customerName: customersTable.name, fsNumber: salesTable.fsNumber, paymentType: salesTable.paymentType, paymentMethod: salesTable.paymentMethod, status: salesTable.status, subtotal: salesTable.subtotal, vatApplicable: salesTable.vatApplicable, vatAmount: salesTable.vatAmount, withholdingAmount: salesTable.withholdingAmount, discountAmount: salesTable.discountAmount, totalAmount: salesTable.totalAmount, paidAmount: salesTable.paidAmount, balanceDue: salesTable.balanceDue, dueDate: salesTable.dueDate, salespersonId: salesTable.salespersonId, storeId: salesTable.storeId, remarks: salesTable.remarks, createdAt: salesTable.createdAt })
+    .select({ 
+      id: salesTable.id, 
+      invoiceNumber: salesTable.invoiceNumber, 
+      saleDate: salesTable.saleDate, 
+      customerId: salesTable.customerId, 
+      customerName: customersTable.name, 
+      fsNumber: salesTable.fsNumber, 
+      paymentType: salesTable.paymentType, 
+      paymentMethod: salesTable.paymentMethod, 
+      status: salesTable.status, 
+      subtotal: salesTable.subtotal, 
+      vatApplicable: salesTable.vatApplicable, 
+      vatAmount: salesTable.vatAmount, 
+      withholdingAmount: salesTable.withholdingAmount, 
+      discountAmount: salesTable.discountAmount, 
+      totalAmount: salesTable.totalAmount, 
+      paidAmount: salesTable.paidAmount, 
+      balanceDue: salesTable.balanceDue, 
+      dueDate: salesTable.dueDate, 
+      salespersonId: salesTable.salespersonId, 
+      storeId: salesTable.storeId, 
+      remarks: salesTable.remarks, 
+      createdAt: salesTable.createdAt 
+    })
     .from(salesTable)
     .leftJoin(customersTable, eq(salesTable.customerId, customersTable.id))
     .where(eq(salesTable.id, id));

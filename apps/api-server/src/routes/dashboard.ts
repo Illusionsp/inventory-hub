@@ -5,8 +5,20 @@ import { eq, sql, and, lte, gte } from "drizzle-orm";
 
 const router = Router();
 
+// Helper to reliably get today's date in YYYY-MM-DD local time
+function getLocalTodayString(offsetDays = 0): string {
+  const d = new Date();
+  if (offsetDays !== 0) {
+    d.setDate(d.getDate() + offsetDays);
+  }
+  const year = d.getFullYear();
+  const month = String(d.getMonth() + 1).padStart(2, '0');
+  const day = String(d.getDate()).padStart(2, '0');
+  return `${year}-${month}-${day}`;
+}
+
 router.get("/dashboard/summary", requireAuth, async (_req, res): Promise<void> => {
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalTodayString();
   const monthStart = today.slice(0, 7) + "-01";
 
   const [invSummary] = await db.select({ count: sql<number>`count(*)`, totalStock: sql<number>`coalesce(sum(quantity::numeric), 0)` }).from(inventoryTable);
@@ -55,7 +67,7 @@ router.get("/dashboard/alerts", requireAuth, async (_req, res): Promise<void> =>
   }
 
   // Overdue payments
-  const today = new Date().toISOString().split("T")[0];
+  const today = getLocalTodayString();
   const overdue = await db.select({ id: salesTable.id, invoiceNumber: salesTable.invoiceNumber }).from(salesTable).where(and(sql`balance_due::numeric > 0`, lte(salesTable.dueDate, today))).limit(3);
   for (const s of overdue) {
     alerts.push({ id: alertId++, type: "overdue_payment", severity: "critical", message: `Invoice ${s.invoiceNumber} is overdue`, entityType: "sale", entityId: s.id, createdAt: now });
@@ -69,26 +81,43 @@ router.get("/dashboard/sales-trend", requireAuth, async (req, res): Promise<void
 
   let rows: Array<{ label: string; value: number; count: number }> = [];
 
+  // Align with 'saleDate' (YYYY-MM-DD string) instead of 'createdAt' to match the Sales Reports logic
   if (period === "daily") {
+    const date30DaysAgo = getLocalTodayString(-30);
     const data = await db.select({
-      label: sql<string>`DATE(created_at)::text`,
+      label: salesTable.saleDate,
       value: sql<number>`coalesce(sum(total_amount::numeric), 0)`,
       count: sql<number>`count(*)`,
-    }).from(salesTable).where(gte(salesTable.createdAt, new Date(Date.now() - 30 * 86400000))).groupBy(sql`DATE(created_at)`).orderBy(sql`DATE(created_at)`);
-    rows = data.map(r => ({ label: r.label, value: Number(r.value), count: Number(r.count) }));
+    }).from(salesTable)
+      .where(gte(salesTable.saleDate, date30DaysAgo))
+      .groupBy(salesTable.saleDate)
+      .orderBy(salesTable.saleDate);
+      
+    rows = data.map(r => ({ label: String(r.label), value: Number(r.value), count: Number(r.count) }));
+    
   } else if (period === "monthly") {
+    const date365DaysAgo = getLocalTodayString(-365);
     const data = await db.select({
-      label: sql<string>`to_char(created_at, 'YYYY-MM')`,
+      label: sql<string>`substring(${salesTable.saleDate}, 1, 7)`,
       value: sql<number>`coalesce(sum(total_amount::numeric), 0)`,
       count: sql<number>`count(*)`,
-    }).from(salesTable).where(gte(salesTable.createdAt, new Date(Date.now() - 365 * 86400000))).groupBy(sql`to_char(created_at, 'YYYY-MM')`).orderBy(sql`to_char(created_at, 'YYYY-MM')`);
+    }).from(salesTable)
+      .where(gte(salesTable.saleDate, date365DaysAgo))
+      .groupBy(sql`substring(${salesTable.saleDate}, 1, 7)`)
+      .orderBy(sql`substring(${salesTable.saleDate}, 1, 7)`);
+      
     rows = data.map(r => ({ label: r.label, value: Number(r.value), count: Number(r.count) }));
+    
   } else {
+    // Yearly
     const data = await db.select({
-      label: sql<string>`to_char(created_at, 'YYYY')`,
+      label: sql<string>`substring(${salesTable.saleDate}, 1, 4)`,
       value: sql<number>`coalesce(sum(total_amount::numeric), 0)`,
       count: sql<number>`count(*)`,
-    }).from(salesTable).groupBy(sql`to_char(created_at, 'YYYY')`).orderBy(sql`to_char(created_at, 'YYYY')`);
+    }).from(salesTable)
+      .groupBy(sql`substring(${salesTable.saleDate}, 1, 4)`)
+      .orderBy(sql`substring(${salesTable.saleDate}, 1, 4)`);
+      
     rows = data.map(r => ({ label: r.label, value: Number(r.value), count: Number(r.count) }));
   }
 
