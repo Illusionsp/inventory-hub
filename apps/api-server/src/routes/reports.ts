@@ -23,7 +23,7 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
 
   const today = new Date();
   const dateFrom = from || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
-  const dateTo = to || today.toISOString().split("T")[0];
+  const dateTo = to || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   const conditions: SQL[] = [
     gte(salesTable.saleDate, dateFrom),
@@ -153,12 +153,12 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
 
   const today = new Date();
   const dateFrom = from || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
-  const dateTo = to || today.toISOString().split("T")[0];
+  const dateTo = to || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   // Only completed batches have wastage data
   const conditions: SQL[] = [eq(productionBatchesTable.status, "completed")];
-  if (from) conditions.push(gte(sql`${productionBatchesTable.completedAt}::text`, dateFrom));
-  if (to) conditions.push(lte(sql`${productionBatchesTable.completedAt}::text`, `${dateTo} 23:59:59`));
+  if (from) conditions.push(gte(sql`${productionBatchesTable.completedAt}::date`, dateFrom));
+  if (to) conditions.push(lte(sql`${productionBatchesTable.completedAt}::date`, dateTo));
   if (storeId) {
     const sid = parseInt(storeId, 10);
     conditions.push(or(

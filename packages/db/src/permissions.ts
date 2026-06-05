@@ -5,22 +5,22 @@
  */
 export const PERMISSIONS = {
   // ── Creation / operational ──────────────────────────────────────────────
-  CAN_CREATE_STORE_REQUESTS:   "can_create_store_requests",
-  CAN_RECEIVE_ITEMS:           "can_receive_items",
-  CAN_VIEW_REQUEST_STATUS:     "can_view_request_status",
+  CAN_CREATE_STORE_REQUESTS: "can_create_store_requests",
+  CAN_RECEIVE_ITEMS: "can_receive_items",
+  CAN_VIEW_REQUEST_STATUS: "can_view_request_status",
   CAN_CREATE_BATCH_PRODUCTION: "can_create_batch_production",
-  CAN_MANAGE_INVENTORY:        "can_manage_inventory",
-  CAN_VIEW_REPORTS:            "can_view_reports",
+  CAN_MANAGE_INVENTORY: "can_manage_inventory",
+  CAN_VIEW_REPORTS: "can_view_reports",
 
   // ── Module-specific approval actions ────────────────────────────────────
   /** Approve or reject Goods Received Notes (GRN). */
-  CAN_APPROVE_GRN:             "can_approve_grn",
+  CAN_APPROVE_GRN: "can_approve_grn",
   /** Approve or reject store-to-store transfer and store requests. */
-  CAN_APPROVE_STORE_REQUESTS:  "can_approve_store_requests",
+  CAN_APPROVE_STORE_REQUESTS: "can_approve_store_requests",
   /** Dispatch / send items to fulfil a store request or production batch. */
-  CAN_APPROVE_DISPATCH:        "can_approve_dispatch",
+  CAN_APPROVE_DISPATCH: "can_approve_dispatch",
   /** Mark a production batch as completed (record actual output & wastage). */
-  CAN_APPROVE_PRODUCTION:      "can_approve_production",
+  CAN_APPROVE_PRODUCTION: "can_approve_production",
 } as const;
 
 export type Permission = (typeof PERMISSIONS)[keyof typeof PERMISSIONS];
@@ -40,6 +40,7 @@ export const ROLE_DEFAULT_PERMISSIONS: Record<string, Permission[]> = {
     // Store managers approve incoming requests to their store and dispatch outgoing items
     PERMISSIONS.CAN_APPROVE_STORE_REQUESTS,
     PERMISSIONS.CAN_APPROVE_DISPATCH,
+    PERMISSIONS.CAN_APPROVE_GRN,
   ],
   approver: [
     PERMISSIONS.CAN_APPROVE_GRN,

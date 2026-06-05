@@ -243,8 +243,9 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
 
 function getDefaultDates() {
   const today = new Date();
-  const from = `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
-  const to = today.toISOString().split("T")[0];
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const from = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-01`;
+  const to = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
   return { from, to };
 }
 

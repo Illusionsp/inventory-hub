@@ -21,7 +21,7 @@ router.get("/sales", requireAuth, async (req, res): Promise<void> => {
   if (status) conditions.push(eq(salesTable.status, status));
   if (customerId) conditions.push(eq(salesTable.customerId, parseInt(customerId, 10)));
   if (search) conditions.push(ilike(salesTable.invoiceNumber, `%${search}%`));
-  
+
   // Date range filters to match the sales report exactly
   if (from) conditions.push(gte(salesTable.saleDate, from));
   if (to) conditions.push(lte(salesTable.saleDate, `${to} 23:59:59`));
@@ -29,29 +29,29 @@ router.get("/sales", requireAuth, async (req, res): Promise<void> => {
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
   const rows = await db
-    .select({ 
-      id: salesTable.id, 
-      invoiceNumber: salesTable.invoiceNumber, 
-      saleDate: salesTable.saleDate, 
-      customerId: salesTable.customerId, 
-      customerName: customersTable.name, 
-      fsNumber: salesTable.fsNumber, 
-      paymentType: salesTable.paymentType, 
-      paymentMethod: salesTable.paymentMethod, 
-      status: salesTable.status, 
-      subtotal: salesTable.subtotal, 
-      vatApplicable: salesTable.vatApplicable, 
-      vatAmount: salesTable.vatAmount, 
-      withholdingAmount: salesTable.withholdingAmount, 
-      discountAmount: salesTable.discountAmount, 
-      totalAmount: salesTable.totalAmount, 
-      paidAmount: salesTable.paidAmount, 
-      balanceDue: salesTable.balanceDue, 
-      dueDate: salesTable.dueDate, 
-      salespersonId: salesTable.salespersonId, 
-      storeId: salesTable.storeId, 
-      remarks: salesTable.remarks, 
-      createdAt: salesTable.createdAt 
+    .select({
+      id: salesTable.id,
+      invoiceNumber: salesTable.invoiceNumber,
+      saleDate: salesTable.saleDate,
+      customerId: salesTable.customerId,
+      customerName: customersTable.name,
+      fsNumber: salesTable.fsNumber,
+      paymentType: salesTable.paymentType,
+      paymentMethod: salesTable.paymentMethod,
+      status: salesTable.status,
+      subtotal: salesTable.subtotal,
+      vatApplicable: salesTable.vatApplicable,
+      vatAmount: salesTable.vatAmount,
+      withholdingAmount: salesTable.withholdingAmount,
+      discountAmount: salesTable.discountAmount,
+      totalAmount: salesTable.totalAmount,
+      paidAmount: salesTable.paidAmount,
+      balanceDue: salesTable.balanceDue,
+      dueDate: salesTable.dueDate,
+      salespersonId: salesTable.salespersonId,
+      storeId: salesTable.storeId,
+      remarks: salesTable.remarks,
+      createdAt: salesTable.createdAt
     })
     .from(salesTable)
     .leftJoin(customersTable, eq(salesTable.customerId, customersTable.id))
@@ -133,29 +133,29 @@ router.post("/sales", requireAuth, async (req, res): Promise<void> => {
 router.get("/sales/:id", requireAuth, async (req, res): Promise<void> => {
   const id = parseInt(Array.isArray(req.params.id) ? req.params.id[0] : req.params.id, 10);
   const [sale] = await db
-    .select({ 
-      id: salesTable.id, 
-      invoiceNumber: salesTable.invoiceNumber, 
-      saleDate: salesTable.saleDate, 
-      customerId: salesTable.customerId, 
-      customerName: customersTable.name, 
-      fsNumber: salesTable.fsNumber, 
-      paymentType: salesTable.paymentType, 
-      paymentMethod: salesTable.paymentMethod, 
-      status: salesTable.status, 
-      subtotal: salesTable.subtotal, 
-      vatApplicable: salesTable.vatApplicable, 
-      vatAmount: salesTable.vatAmount, 
-      withholdingAmount: salesTable.withholdingAmount, 
-      discountAmount: salesTable.discountAmount, 
-      totalAmount: salesTable.totalAmount, 
-      paidAmount: salesTable.paidAmount, 
-      balanceDue: salesTable.balanceDue, 
-      dueDate: salesTable.dueDate, 
-      salespersonId: salesTable.salespersonId, 
-      storeId: salesTable.storeId, 
-      remarks: salesTable.remarks, 
-      createdAt: salesTable.createdAt 
+    .select({
+      id: salesTable.id,
+      invoiceNumber: salesTable.invoiceNumber,
+      saleDate: salesTable.saleDate,
+      customerId: salesTable.customerId,
+      customerName: customersTable.name,
+      fsNumber: salesTable.fsNumber,
+      paymentType: salesTable.paymentType,
+      paymentMethod: salesTable.paymentMethod,
+      status: salesTable.status,
+      subtotal: salesTable.subtotal,
+      vatApplicable: salesTable.vatApplicable,
+      vatAmount: salesTable.vatAmount,
+      withholdingAmount: salesTable.withholdingAmount,
+      discountAmount: salesTable.discountAmount,
+      totalAmount: salesTable.totalAmount,
+      paidAmount: salesTable.paidAmount,
+      balanceDue: salesTable.balanceDue,
+      dueDate: salesTable.dueDate,
+      salespersonId: salesTable.salespersonId,
+      storeId: salesTable.storeId,
+      remarks: salesTable.remarks,
+      createdAt: salesTable.createdAt
     })
     .from(salesTable)
     .leftJoin(customersTable, eq(salesTable.customerId, customersTable.id))
