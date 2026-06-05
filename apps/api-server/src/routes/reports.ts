@@ -149,23 +149,25 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
 
 // ── Wastage Report ───────────────────────────────────────────────────────────
 router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
-  const { from, to, storeId, productId, groupBy = "daily" } = req.query as Record<string, string>;
+  const from = req.query.from as string | undefined;
+  const to = req.query.to as string | undefined;
+  const storeIdStr = req.query.storeId as string | undefined;
+  const productIdStr = req.query.productId as string | undefined;
+  const groupBy = (req.query.groupBy as string) || "daily";
 
   const today = new Date();
   const dateFrom = from || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
   const dateTo = to || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
-  // Only completed batches have wastage data
-  const conditions: SQL[] = [eq(productionBatchesTable.status, "completed")];
-  if (storeId) {
-    const sid = parseInt(storeId, 10);
-    conditions.push(or(
-      eq(productionBatchesTable.stageFromStoreId, sid),
-      eq(productionBatchesTable.stageToStoreId, sid),
-    )!);
-  }
-
   try {
+    const conditions: SQL[] = [eq(productionBatchesTable.status, "completed")];
+    if (storeIdStr) {
+      const sid = parseInt(storeIdStr, 10);
+      conditions.push(or(
+        eq(productionBatchesTable.stageFromStoreId, sid),
+        eq(productionBatchesTable.stageToStoreId, sid),
+      )!);
+    }
     const batches = await db
       .select({
         id: productionBatchesTable.id,
@@ -218,10 +220,12 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
 
     // Optional product filter — keep only batches that used this input product
     let filteredIds = new Set(batchIdList);
-    if (productId) {
-      const pid = parseInt(productId, 10);
-      const matching = new Set(allInputs.filter(i => i.productId === pid).map(i => i.batchId));
-      filteredIds = matching;
+    if (productIdStr) {
+      const pid = parseInt(productIdStr, 10);
+      if (!isNaN(pid)) {
+        const matching = new Set(allInputs.filter(i => i.productId === pid).map(i => i.batchId));
+        filteredIds = matching;
+      }
     }
 
     const filteredBatches = batches.filter(b => filteredIds.has(b.id));
