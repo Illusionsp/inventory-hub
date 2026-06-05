@@ -148,7 +148,7 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
 });
 
 // ── Wastage Report ───────────────────────────────────────────────────────────
-router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
+router.get("/reports/wastage-summary", requireAuth, async (req, res): Promise<void> => {
   const { from, to, storeId, productId, groupBy = "daily" } = req.query as Record<string, string>;
 
   const today = new Date();
