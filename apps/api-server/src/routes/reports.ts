@@ -242,6 +242,11 @@ router.get("/reports/wastage-summary", requireAuth, async (req, res): Promise<vo
     for (const s of stores) storeNames[s.id] = s.name;
   }
 
+  const safeNum = (v: any) => {
+    const n = parseFloat(String(v || 0));
+    return isNaN(n) ? 0 : n;
+  };
+
   // Summary aggregation
   let totalInputQty = 0;
   let totalOutputQty = 0;
@@ -250,14 +255,16 @@ router.get("/reports/wastage-summary", requireAuth, async (req, res): Promise<vo
   let yieldPercSum = 0;
   let percCount = 0;
 
-  for (const inp of filteredInputs) totalInputQty += parseFloat(String(inp.quantity || 0));
+  for (const inp of filteredInputs) {
+    totalInputQty += safeNum(inp.quantity);
+  }
 
   for (const b of filteredBatches) {
-    totalOutputQty += parseFloat(String(b.actualOutputQty || 0));
-    totalWastageQty += parseFloat(String(b.wastageQty || 0));
+    totalOutputQty += safeNum(b.actualOutputQty);
+    totalWastageQty += safeNum(b.wastageQty);
     if (b.wastagePercent != null) {
-      wastagePercSum += parseFloat(String(b.wastagePercent));
-      yieldPercSum += parseFloat(String(b.yieldPercent || 0));
+      wastagePercSum += safeNum(b.wastagePercent);
+      yieldPercSum += safeNum(b.yieldPercent);
       percCount++;
     }
   }
@@ -268,7 +275,7 @@ router.get("/reports/wastage-summary", requireAuth, async (req, res): Promise<vo
     if (!productMap[inp.productId]) {
       productMap[inp.productId] = { productName: inp.productName ?? "Unknown", unit: inp.unit, totalInputQty: 0, batchCount: 0 };
     }
-    productMap[inp.productId].totalInputQty += parseFloat(String(inp.quantity || 0));
+    productMap[inp.productId].totalInputQty += safeNum(inp.quantity);
     productMap[inp.productId].batchCount++;
   }
 
@@ -279,12 +286,15 @@ router.get("/reports/wastage-summary", requireAuth, async (req, res): Promise<vo
     const key = raw
       ? (groupBy === "monthly" ? raw.substring(0, 7) : raw)
       : "Unknown";
-    if (!dateMap[key]) dateMap[key] = { batchCount: 0, totalWastageQty: 0, totalOutputQty: 0, wPercSum: 0, wPercCount: 0 };
+
+    if (!dateMap[key]) {
+      dateMap[key] = { batchCount: 0, totalWastageQty: 0, totalOutputQty: 0, wPercSum: 0, wPercCount: 0 };
+    }
     dateMap[key].batchCount++;
-    dateMap[key].totalWastageQty += parseFloat(String(b.wastageQty || 0));
-    dateMap[key].totalOutputQty += parseFloat(String(b.actualOutputQty || 0));
+    dateMap[key].totalWastageQty += safeNum(b.wastageQty);
+    dateMap[key].totalOutputQty += safeNum(b.actualOutputQty);
     if (b.wastagePercent != null) {
-      dateMap[key].wPercSum += parseFloat(String(b.wastagePercent));
+      dateMap[key].wPercSum += safeNum(b.wastagePercent);
       dateMap[key].wPercCount++;
     }
   }
