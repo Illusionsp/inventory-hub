@@ -6,17 +6,14 @@ const router = Router();
 
 router.get("/debug/schema", async (req, res) => {
     try {
-        const table = req.query.table as string;
-        if (!table) return res.json({ error: "Missing table param" });
-
         const result = await db.execute(sql`
       SELECT column_name, data_type, is_nullable
       FROM information_schema.columns
-      WHERE table_name = ${table}
+      WHERE table_name = 'production_batches'
     `);
         res.json(result.rows);
     } catch (err: any) {
-        res.status(500).json({ error: err.message });
+        res.json({ error: err.message, stack: err.stack });
     }
 });
 
