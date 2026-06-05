@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, gte, lte, or, inArray, SQL, desc, sql } from "drizzle-orm";
+import { eq, and, gte, lte, lt, or, inArray, SQL, desc, sql } from "drizzle-orm";
 import {
   db,
   salesTable, customersTable,
@@ -157,8 +157,12 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
 
   // Only completed batches have wastage data
   const conditions: SQL[] = [eq(productionBatchesTable.status, "completed")];
-  if (from) conditions.push(sql`${productionBatchesTable.completedAt} >= ${dateFrom}::timestamp`);
-  if (to) conditions.push(sql`${productionBatchesTable.completedAt} < (${dateTo}::timestamp + interval '1 day')`);
+  if (from) conditions.push(gte(productionBatchesTable.completedAt, new Date(dateFrom)));
+  if (to) {
+    const nextDay = new Date(dateTo);
+    nextDay.setDate(nextDay.getDate() + 1);
+    conditions.push(lt(productionBatchesTable.completedAt, nextDay));
+  }
   if (storeId) {
     const sid = parseInt(storeId, 10);
     conditions.push(or(
