@@ -157,12 +157,8 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
 
   // Only completed batches have wastage data
   const conditions: SQL[] = [eq(productionBatchesTable.status, "completed")];
-  if (from) conditions.push(gte(productionBatchesTable.completedAt, new Date(dateFrom)));
-  if (to) {
-    const nextDay = new Date(dateTo);
-    nextDay.setDate(nextDay.getDate() + 1);
-    conditions.push(lt(productionBatchesTable.completedAt, nextDay));
-  }
+  if (from) conditions.push(gte(sql`${productionBatchesTable.completedAt}::date`, from));
+  if (to) conditions.push(lte(sql`${productionBatchesTable.completedAt}::date`, to));
   if (storeId) {
     const sid = parseInt(storeId, 10);
     conditions.push(or(
@@ -171,169 +167,165 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
     )!);
   }
 
-  try {
-    const batches = await db
+  const batches = await db
+    .select({
+      id: productionBatchesTable.id,
+      batchNumber: productionBatchesTable.batchNumber,
+      type: productionBatchesTable.type,
+      finalProductName: productionBatchesTable.finalProductName,
+      productionDate: productionBatchesTable.productionDate,
+      completedAt: productionBatchesTable.completedAt,
+      plannedOutputQty: productionBatchesTable.plannedOutputQty,
+      actualOutputQty: productionBatchesTable.actualOutputQty,
+      wastageQty: productionBatchesTable.wastageQty,
+      wastagePercent: productionBatchesTable.wastagePercent,
+      yieldPercent: productionBatchesTable.yieldPercent,
+      outputUnit: productionBatchesTable.outputUnit,
+      stageFromStoreId: productionBatchesTable.stageFromStoreId,
+      stageToStoreId: productionBatchesTable.stageToStoreId,
+      packagesProduced: productionBatchesTable.packagesProduced,
+      packageSize: productionBatchesTable.packageSize,
+      packageSizeUnit: productionBatchesTable.packageSizeUnit,
+    })
+    .from(productionBatchesTable)
+    .where(and(...conditions))
+    .orderBy(productionBatchesTable.productionDate);
+
+  const batchIdList = batches.map(b => b.id);
+
+  // Fetch inputs for all batches (joined with product names)
+  const allInputs = batchIdList.length > 0
+    ? await db
       .select({
-        id: productionBatchesTable.id,
-        batchNumber: productionBatchesTable.batchNumber,
-        type: productionBatchesTable.type,
-        finalProductName: productionBatchesTable.finalProductName,
-        productionDate: productionBatchesTable.productionDate,
-        completedAt: productionBatchesTable.completedAt,
-        plannedOutputQty: productionBatchesTable.plannedOutputQty,
-        actualOutputQty: productionBatchesTable.actualOutputQty,
-        wastageQty: productionBatchesTable.wastageQty,
-        wastagePercent: productionBatchesTable.wastagePercent,
-        yieldPercent: productionBatchesTable.yieldPercent,
-        outputUnit: productionBatchesTable.outputUnit,
-        stageFromStoreId: productionBatchesTable.stageFromStoreId,
-        stageToStoreId: productionBatchesTable.stageToStoreId,
-        packagesProduced: productionBatchesTable.packagesProduced,
-        packageSize: productionBatchesTable.packageSize,
-        packageSizeUnit: productionBatchesTable.packageSizeUnit,
+        batchId: productionInputsTable.batchId,
+        productId: productionInputsTable.productId,
+        quantity: productionInputsTable.quantity,
+        unit: productionInputsTable.unit,
+        productName: productsTable.name,
       })
-      .from(productionBatchesTable)
-      .where(and(...conditions))
-      .orderBy(productionBatchesTable.productionDate);
+      .from(productionInputsTable)
+      .leftJoin(productsTable, eq(productionInputsTable.productId, productsTable.id))
+      .where(inArray(productionInputsTable.batchId, batchIdList))
+    : [];
 
-    const batchIdList = batches.map(b => b.id);
-
-    // Fetch inputs for all batches (joined with product names)
-    const allInputs = batchIdList.length > 0
-      ? await db
-        .select({
-          batchId: productionInputsTable.batchId,
-          productId: productionInputsTable.productId,
-          quantity: productionInputsTable.quantity,
-          unit: productionInputsTable.unit,
-          productName: productsTable.name,
-        })
-        .from(productionInputsTable)
-        .leftJoin(productsTable, eq(productionInputsTable.productId, productsTable.id))
-        .where(inArray(productionInputsTable.batchId, batchIdList))
-      : [];
-
-    // Optional product filter — keep only batches that used this input product
-    let filteredIds = new Set(batchIdList);
-    if (productId) {
-      const pid = parseInt(productId, 10);
-      const matching = new Set(allInputs.filter(i => i.productId === pid).map(i => i.batchId));
-      filteredIds = matching;
-    }
-
-    const filteredBatches = batches.filter(b => filteredIds.has(b.id));
-    const filteredInputs = allInputs.filter(i => filteredIds.has(i.batchId));
-
-    // Resolve store names
-    const usedStoreIds = [
-      ...new Set([
-        ...filteredBatches.map(b => b.stageFromStoreId),
-        ...filteredBatches.map(b => b.stageToStoreId),
-      ]),
-    ];
-    const storeNames: Record<number, string> = {};
-    if (usedStoreIds.length > 0) {
-      const stores = await db
-        .select({ id: storesTable.id, name: storesTable.name })
-        .from(storesTable)
-        .where(inArray(storesTable.id, usedStoreIds));
-      for (const s of stores) storeNames[s.id] = s.name;
-    }
-
-    // Summary aggregation
-    let totalInputQty = 0;
-    let totalOutputQty = 0;
-    let totalWastageQty = 0;
-    let wastagePercSum = 0;
-    let yieldPercSum = 0;
-    let percCount = 0;
-
-    for (const inp of filteredInputs) totalInputQty += parseFloat(String(inp.quantity || 0));
-
-    for (const b of filteredBatches) {
-      totalOutputQty += parseFloat(String(b.actualOutputQty || 0));
-      totalWastageQty += parseFloat(String(b.wastageQty || 0));
-      if (b.wastagePercent != null) {
-        wastagePercSum += parseFloat(String(b.wastagePercent));
-        yieldPercSum += parseFloat(String(b.yieldPercent || 0));
-        percCount++;
-      }
-    }
-
-    // By-product breakdown
-    const productMap: Record<number, { productName: string; unit: string; totalInputQty: number; batchCount: number }> = {};
-    for (const inp of filteredInputs) {
-      if (!productMap[inp.productId]) {
-        productMap[inp.productId] = { productName: inp.productName ?? "Unknown", unit: inp.unit, totalInputQty: 0, batchCount: 0 };
-      }
-      productMap[inp.productId].totalInputQty += parseFloat(String(inp.quantity || 0));
-      productMap[inp.productId].batchCount++;
-    }
-
-    // By-date breakdown
-    const dateMap: Record<string, { batchCount: number; totalWastageQty: number; totalOutputQty: number; wPercSum: number; wPercCount: number }> = {};
-    for (const b of filteredBatches) {
-      const raw = b.productionDate ?? (b.completedAt ? new Date(b.completedAt).toISOString().split("T")[0] : null);
-      const key = raw
-        ? (groupBy === "monthly" ? raw.substring(0, 7) : raw)
-        : "Unknown";
-      if (!dateMap[key]) dateMap[key] = { batchCount: 0, totalWastageQty: 0, totalOutputQty: 0, wPercSum: 0, wPercCount: 0 };
-      dateMap[key].batchCount++;
-      dateMap[key].totalWastageQty += parseFloat(String(b.wastageQty || 0));
-      dateMap[key].totalOutputQty += parseFloat(String(b.actualOutputQty || 0));
-      if (b.wastagePercent != null) {
-        dateMap[key].wPercSum += parseFloat(String(b.wastagePercent));
-        dateMap[key].wPercCount++;
-      }
-    }
-
-    res.json({
-      from: dateFrom,
-      to: dateTo,
-      groupBy,
-      summary: {
-        totalBatches: filteredBatches.length,
-        totalInputQty: parseFloat(totalInputQty.toFixed(3)),
-        totalOutputQty: parseFloat(totalOutputQty.toFixed(3)),
-        totalWastageQty: parseFloat(totalWastageQty.toFixed(3)),
-        avgWastagePercent: percCount > 0 ? parseFloat((wastagePercSum / percCount).toFixed(2)) : 0,
-        avgYieldPercent: percCount > 0 ? parseFloat((yieldPercSum / percCount).toFixed(2)) : 0,
-      },
-      byBatch: filteredBatches.map(b => ({
-        id: b.id,
-        batchNumber: b.batchNumber,
-        type: b.type,
-        finalProductName: b.finalProductName,
-        productionDate: b.productionDate,
-        completedAt: b.completedAt,
-        plannedOutputQty: parseFloat(String(b.plannedOutputQty || 0)),
-        actualOutputQty: parseFloat(String(b.actualOutputQty || 0)),
-        wastageQty: parseFloat(String(b.wastageQty || 0)),
-        wastagePercent: parseFloat(String(b.wastagePercent || 0)),
-        yieldPercent: parseFloat(String(b.yieldPercent || 0)),
-        outputUnit: b.outputUnit,
-        storeFromName: storeNames[b.stageFromStoreId] ?? null,
-        storeToName: storeNames[b.stageToStoreId] ?? null,
-        packagesProduced: b.packagesProduced ? parseFloat(String(b.packagesProduced)) : null,
-        packageSize: b.packageSize ? parseFloat(String(b.packageSize)) : null,
-        packageSizeUnit: b.packageSizeUnit ?? null,
-      })),
-      byProduct: Object.entries(productMap)
-        .map(([pid, d]) => ({ productId: parseInt(pid), ...d, totalInputQty: parseFloat(d.totalInputQty.toFixed(3)) }))
-        .sort((a, b) => b.totalInputQty - a.totalInputQty),
-      byDate: Object.entries(dateMap)
-        .sort(([a], [b]) => a.localeCompare(b))
-        .map(([period, d]) => ({
-          period,
-          batchCount: d.batchCount,
-          totalWastageQty: parseFloat(d.totalWastageQty.toFixed(3)),
-          totalOutputQty: parseFloat(d.totalOutputQty.toFixed(3)),
-          avgWastagePercent: d.wPercCount > 0 ? parseFloat((d.wPercSum / d.wPercCount).toFixed(2)) : 0,
-        })),
-    });
-  } catch (err: any) {
-    res.status(500).json({ error: "Report calculation failed", message: err.message, stack: err.stack });
+  // Optional product filter — keep only batches that used this input product
+  let filteredIds = new Set(batchIdList);
+  if (productId) {
+    const pid = parseInt(productId, 10);
+    const matching = new Set(allInputs.filter(i => i.productId === pid).map(i => i.batchId));
+    filteredIds = matching;
   }
+
+  const filteredBatches = batches.filter(b => filteredIds.has(b.id));
+  const filteredInputs = allInputs.filter(i => filteredIds.has(i.batchId));
+
+  // Resolve store names
+  const usedStoreIds = [
+    ...new Set([
+      ...filteredBatches.map(b => b.stageFromStoreId),
+      ...filteredBatches.map(b => b.stageToStoreId),
+    ]),
+  ];
+  const storeNames: Record<number, string> = {};
+  if (usedStoreIds.length > 0) {
+    const stores = await db
+      .select({ id: storesTable.id, name: storesTable.name })
+      .from(storesTable)
+      .where(inArray(storesTable.id, usedStoreIds));
+    for (const s of stores) storeNames[s.id] = s.name;
+  }
+
+  // Summary aggregation
+  let totalInputQty = 0;
+  let totalOutputQty = 0;
+  let totalWastageQty = 0;
+  let wastagePercSum = 0;
+  let yieldPercSum = 0;
+  let percCount = 0;
+
+  for (const inp of filteredInputs) totalInputQty += parseFloat(String(inp.quantity || 0));
+
+  for (const b of filteredBatches) {
+    totalOutputQty += parseFloat(String(b.actualOutputQty || 0));
+    totalWastageQty += parseFloat(String(b.wastageQty || 0));
+    if (b.wastagePercent != null) {
+      wastagePercSum += parseFloat(String(b.wastagePercent));
+      yieldPercSum += parseFloat(String(b.yieldPercent || 0));
+      percCount++;
+    }
+  }
+
+  // By-product breakdown
+  const productMap: Record<number, { productName: string; unit: string; totalInputQty: number; batchCount: number }> = {};
+  for (const inp of filteredInputs) {
+    if (!productMap[inp.productId]) {
+      productMap[inp.productId] = { productName: inp.productName ?? "Unknown", unit: inp.unit, totalInputQty: 0, batchCount: 0 };
+    }
+    productMap[inp.productId].totalInputQty += parseFloat(String(inp.quantity || 0));
+    productMap[inp.productId].batchCount++;
+  }
+
+  // By-date breakdown
+  const dateMap: Record<string, { batchCount: number; totalWastageQty: number; totalOutputQty: number; wPercSum: number; wPercCount: number }> = {};
+  for (const b of filteredBatches) {
+    const raw = b.productionDate ?? (b.completedAt ? new Date(b.completedAt).toISOString().split("T")[0] : null);
+    const key = raw
+      ? (groupBy === "monthly" ? raw.substring(0, 7) : raw)
+      : "Unknown";
+    if (!dateMap[key]) dateMap[key] = { batchCount: 0, totalWastageQty: 0, totalOutputQty: 0, wPercSum: 0, wPercCount: 0 };
+    dateMap[key].batchCount++;
+    dateMap[key].totalWastageQty += parseFloat(String(b.wastageQty || 0));
+    dateMap[key].totalOutputQty += parseFloat(String(b.actualOutputQty || 0));
+    if (b.wastagePercent != null) {
+      dateMap[key].wPercSum += parseFloat(String(b.wastagePercent));
+      dateMap[key].wPercCount++;
+    }
+  }
+
+  res.json({
+    from: dateFrom,
+    to: dateTo,
+    groupBy,
+    summary: {
+      totalBatches: filteredBatches.length,
+      totalInputQty: parseFloat(totalInputQty.toFixed(3)),
+      totalOutputQty: parseFloat(totalOutputQty.toFixed(3)),
+      totalWastageQty: parseFloat(totalWastageQty.toFixed(3)),
+      avgWastagePercent: percCount > 0 ? parseFloat((wastagePercSum / percCount).toFixed(2)) : 0,
+      avgYieldPercent: percCount > 0 ? parseFloat((yieldPercSum / percCount).toFixed(2)) : 0,
+    },
+    byBatch: filteredBatches.map(b => ({
+      id: b.id,
+      batchNumber: b.batchNumber,
+      type: b.type,
+      finalProductName: b.finalProductName,
+      productionDate: b.productionDate,
+      completedAt: b.completedAt,
+      plannedOutputQty: parseFloat(String(b.plannedOutputQty || 0)),
+      actualOutputQty: parseFloat(String(b.actualOutputQty || 0)),
+      wastageQty: parseFloat(String(b.wastageQty || 0)),
+      wastagePercent: parseFloat(String(b.wastagePercent || 0)),
+      yieldPercent: parseFloat(String(b.yieldPercent || 0)),
+      outputUnit: b.outputUnit,
+      storeFromName: storeNames[b.stageFromStoreId] ?? null,
+      storeToName: storeNames[b.stageToStoreId] ?? null,
+      packagesProduced: b.packagesProduced ? parseFloat(String(b.packagesProduced)) : null,
+      packageSize: b.packageSize ? parseFloat(String(b.packageSize)) : null,
+      packageSizeUnit: b.packageSizeUnit ?? null,
+    })),
+    byProduct: Object.entries(productMap)
+      .map(([pid, d]) => ({ productId: parseInt(pid), ...d, totalInputQty: parseFloat(d.totalInputQty.toFixed(3)) }))
+      .sort((a, b) => b.totalInputQty - a.totalInputQty),
+    byDate: Object.entries(dateMap)
+      .sort(([a], [b]) => a.localeCompare(b))
+      .map(([period, d]) => ({
+        period,
+        batchCount: d.batchCount,
+        totalWastageQty: parseFloat(d.totalWastageQty.toFixed(3)),
+        totalOutputQty: parseFloat(d.totalOutputQty.toFixed(3)),
+        avgWastagePercent: d.wPercCount > 0 ? parseFloat((d.wPercSum / d.wPercCount).toFixed(2)) : 0,
+      })),
+  });
 });
 
 export default router;
