@@ -19,6 +19,7 @@ import notificationsRouter from "./notifications";
 import auditRouter from "./audit";
 import reportsRouter from "./reports";
 import openingStockRouter from "./opening-stock";
+import debugRouter from "./debug";
 
 const router: IRouter = Router();
 
@@ -42,5 +43,6 @@ router.use(notificationsRouter);
 router.use(auditRouter);
 router.use(reportsRouter);
 router.use(openingStockRouter);
+router.use(debugRouter);
 
 export default router;
