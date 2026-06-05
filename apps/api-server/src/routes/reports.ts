@@ -157,8 +157,8 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
 
   // Only completed batches have wastage data
   const conditions: SQL[] = [eq(productionBatchesTable.status, "completed")];
-  if (from) conditions.push(gte(sql`${productionBatchesTable.completedAt}::date`, sql`${dateFrom}::date`));
-  if (to) conditions.push(lte(sql`${productionBatchesTable.completedAt}::date`, sql`${dateTo}::date`));
+  if (from) conditions.push(sql`${productionBatchesTable.completedAt} >= ${dateFrom}::timestamp`);
+  if (to) conditions.push(sql`${productionBatchesTable.completedAt} < (${dateTo}::date + interval '1 day')`);
   if (storeId) {
     const sid = parseInt(storeId, 10);
     conditions.push(or(
