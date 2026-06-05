@@ -157,8 +157,6 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
 
   // Only completed batches have wastage data
   const conditions: SQL[] = [eq(productionBatchesTable.status, "completed")];
-  if (from) conditions.push(sql`${productionBatchesTable.completedAt}::date >= ${from}::date`);
-  if (to) conditions.push(sql`${productionBatchesTable.completedAt}::date <= ${to}::date`);
   if (storeId) {
     const sid = parseInt(storeId, 10);
     conditions.push(or(
@@ -191,7 +189,16 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
     .where(and(...conditions))
     .orderBy(productionBatchesTable.productionDate);
 
-  const batchIdList = batches.map(b => b.id);
+  // In-memory date filtering to prevent SQL comparison crashes
+  const filteredByDate = batches.filter(b => {
+    if (!b.completedAt) return false;
+    const completedStr = new Date(b.completedAt).toISOString().split("T")[0];
+    if (from && completedStr < from) return false;
+    if (to && completedStr > to) return false;
+    return true;
+  });
+
+  const batchIdList = filteredByDate.map(b => b.id);
 
   // Fetch inputs for all batches (joined with product names)
   const allInputs = batchIdList.length > 0
