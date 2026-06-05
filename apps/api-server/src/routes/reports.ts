@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, gte, lte, or, inArray, SQL, desc } from "drizzle-orm";
+import { eq, and, gte, lte, or, inArray, SQL, desc, sql } from "drizzle-orm";
 import {
   db,
   salesTable, customersTable,
@@ -26,8 +26,8 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
   const dateTo = to || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
 
   const conditions: SQL[] = [
-    gte(salesTable.saleDate, dateFrom),
-    lte(salesTable.saleDate, `${dateTo} 23:59:59`),
+    gte(sql`${salesTable.saleDate}::date`, sql`${dateFrom}::date`),
+    lte(sql`${salesTable.saleDate}::date`, sql`${dateTo}::date`),
   ];
   if (paymentType) conditions.push(eq(salesTable.paymentType, paymentType));
   if (paymentMethod) conditions.push(eq(salesTable.paymentMethod, paymentMethod));

@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, ilike, SQL, desc, gte, lte } from "drizzle-orm";
+import { eq, and, ilike, SQL, desc, gte, lte, sql } from "drizzle-orm";
 import { db, salesTable, saleItemsTable, customersTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
 import { requireAuth } from "../lib/auth";
 import { notifyByPermission } from "../lib/notify";
@@ -23,8 +23,8 @@ router.get("/sales", requireAuth, async (req, res): Promise<void> => {
   if (search) conditions.push(ilike(salesTable.invoiceNumber, `%${search}%`));
 
   // Date range filters to match the sales report exactly
-  if (from) conditions.push(gte(salesTable.saleDate, from));
-  if (to) conditions.push(lte(salesTable.saleDate, `${to} 23:59:59`));
+  if (from) conditions.push(gte(sql`${salesTable.saleDate}::date`, sql`${from}::date`));
+  if (to) conditions.push(lte(sql`${salesTable.saleDate}::date`, sql`${to}::date`));
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 

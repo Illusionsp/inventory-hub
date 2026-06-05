@@ -28,8 +28,18 @@ router.get("/dashboard/summary", requireAuth, async (_req, res): Promise<void> =
   const [pendingGrns] = await db.select({ count: sql<number>`count(*)` }).from(grnsTable).where(eq(grnsTable.status, "pending_approval"));
   const [pendingTransfers] = await db.select({ count: sql<number>`count(*)` }).from(transfersTable).where(eq(transfersTable.status, "pending"));
 
-  const [todaySalesData] = await db.select({ total: sql<number>`coalesce(sum(total_amount::numeric), 0)`, count: sql<number>`count(*)` }).from(salesTable).where(eq(salesTable.saleDate, today));
-  const [monthSalesData] = await db.select({ total: sql<number>`coalesce(sum(total_amount::numeric), 0)`, count: sql<number>`count(*)` }).from(salesTable).where(gte(salesTable.saleDate, monthStart));
+  const [todaySalesData] = await db.select({ total: sql<number>`coalesce(sum(total_amount::numeric), 0)`, count: sql<number>`count(*)` }).from(salesTable).where(
+    and(
+      gte(salesTable.saleDate, today),
+      lte(salesTable.saleDate, `${today} 23:59:59`)
+    )
+  );
+  const [monthSalesData] = await db.select({ total: sql<number>`coalesce(sum(total_amount::numeric), 0)`, count: sql<number>`count(*)` }).from(salesTable).where(
+    and(
+      gte(salesTable.saleDate, monthStart),
+      lte(salesTable.saleDate, `${today} 23:59:59`)
+    )
+  );
   const [outstanding] = await db.select({ total: sql<number>`coalesce(sum(balance_due::numeric), 0)` }).from(salesTable).where(sql`balance_due::numeric > 0`);
   const [activeBatches] = await db.select({ count: sql<number>`count(*)` }).from(productionBatchesTable).where(eq(productionBatchesTable.status, "in_progress"));
 
@@ -92,9 +102,9 @@ router.get("/dashboard/sales-trend", requireAuth, async (req, res): Promise<void
       .where(gte(salesTable.saleDate, date30DaysAgo))
       .groupBy(salesTable.saleDate)
       .orderBy(salesTable.saleDate);
-      
+
     rows = data.map(r => ({ label: String(r.label), value: Number(r.value), count: Number(r.count) }));
-    
+
   } else if (period === "monthly") {
     const date365DaysAgo = getLocalTodayString(-365);
     const data = await db.select({
@@ -105,9 +115,9 @@ router.get("/dashboard/sales-trend", requireAuth, async (req, res): Promise<void
       .where(gte(salesTable.saleDate, date365DaysAgo))
       .groupBy(sql`substring(${salesTable.saleDate}, 1, 7)`)
       .orderBy(sql`substring(${salesTable.saleDate}, 1, 7)`);
-      
+
     rows = data.map(r => ({ label: r.label, value: Number(r.value), count: Number(r.count) }));
-    
+
   } else {
     // Yearly
     const data = await db.select({
@@ -117,7 +127,7 @@ router.get("/dashboard/sales-trend", requireAuth, async (req, res): Promise<void
     }).from(salesTable)
       .groupBy(sql`substring(${salesTable.saleDate}, 1, 4)`)
       .orderBy(sql`substring(${salesTable.saleDate}, 1, 4)`);
-      
+
     rows = data.map(r => ({ label: r.label, value: Number(r.value), count: Number(r.count) }));
   }
 
