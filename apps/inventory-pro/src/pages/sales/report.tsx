@@ -183,7 +183,7 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
   const n = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2 });
   const n3 = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 3 });
 
-  const productRows = data.byProduct.map(p => `
+  const productRows = (data?.byProduct || []).map(p => `
     <tr>
       <td class="bold">${p.name}</td>
       <td class="num bold teal">${n3(p.quantity)}</td>
