@@ -173,7 +173,7 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
         <td class="num bold">${n(inv.totalAmount)}</td>
         <td>
           <div style="font-size: 9px; line-height: 1.1; color: #555;">
-            ${inv.items.map(it => `<div>● ${n3(it.quantity)} ${it.unit} ${it.name}</div>`).join("")}
+            ${(inv.items || []).map(it => `<div>● ${n3(it.quantity)} ${it.unit} ${it.name}</div>`).join("")}
           </div>
         </td>
       </tr>`;
@@ -675,7 +675,7 @@ export default function SalesReport() {
                           {inv.customerName ?? "—"}
                         </TableCell>
                         <TableCell className="text-[10px] text-muted-foreground leading-tight py-1 min-w-[120px]">
-                          {inv.items.map((it, idx) => (
+                          {(inv.items || []).map((it, idx) => (
                             <div key={idx} className="flex gap-1 whitespace-nowrap">
                               <span className="font-bold text-teal-600 dark:text-teal-400">
                                 {it.quantity.toLocaleString("en-US", { maximumFractionDigits: 3 })}
