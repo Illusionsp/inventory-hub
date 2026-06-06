@@ -285,7 +285,12 @@ export default function SalesReport() {
   const { data, isLoading, isFetching } = useQuery<SalesReportData>({
     queryKey: ["salesReport", buildParams(applied)],
     queryFn: async () => {
-      const res = await fetch(`/api/reports/sales?${buildParams(applied)}`, { credentials: "include" });
+      const res = await fetch(`/api/reports/sales?${buildParams(applied)}`, {
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${sessionStorage.getItem("tab_session")}`,
+        },
+      });
       if (!res.ok) throw new Error("Failed to fetch sales report");
       return res.json();
     },

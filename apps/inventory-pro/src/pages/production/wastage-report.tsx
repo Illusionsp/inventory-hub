@@ -244,7 +244,12 @@ export default function WastageReportPage() {
   const { data, isLoading, isFetching } = useQuery<WastageReport>({
     queryKey: ["wastageReport", buildParams(applied)],
     queryFn: async () => {
-      const res = await fetch(`/api/reports/wastage?${buildParams(applied)}`, { credentials: "include" });
+      const res = await fetch(`/api/reports/wastage?${buildParams(applied)}`, {
+        credentials: "include",
+        headers: {
+          Authorization: `Bearer ${sessionStorage.getItem("tab_session")}`,
+        },
+      });
       if (!res.ok) throw new Error("Failed to fetch wastage report");
       return res.json();
     },
