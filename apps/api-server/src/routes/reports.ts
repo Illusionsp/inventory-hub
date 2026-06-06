@@ -2,7 +2,7 @@ import { Router } from "express";
 import { eq, and, gte, lte, lt, or, inArray, SQL, desc, sql } from "drizzle-orm";
 import {
   db,
-  salesTable, customersTable,
+  salesTable, saleItemsTable, customersTable,
   productionBatchesTable, productionInputsTable, productionOutputsTable,
   productsTable, storesTable,
 } from "@workspace/db";
@@ -158,6 +158,35 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
     .sort(([a], [b]) => a.localeCompare(b))
     .map(([period, data]) => ({ period, ...data }));
 
+  // ── Sales by Product Aggregation ───────────────────────────────────────────
+  const invoiceIds = rows.map(r => r.id);
+  const items = invoiceIds.length > 0
+    ? await db
+      .select({
+        productId: saleItemsTable.productId,
+        quantity: saleItemsTable.quantity,
+        unit: saleItemsTable.unit,
+        productName: productsTable.name,
+      })
+      .from(saleItemsTable)
+      .leftJoin(productsTable, eq(saleItemsTable.productId, productsTable.id))
+      .where(inArray(saleItemsTable.saleId, invoiceIds))
+    : [];
+
+  const productAgg: Record<number, { name: string; quantity: number; unit: string }> = {};
+  for (const item of items) {
+    const pid = item.productId;
+    if (!productAgg[pid]) {
+      productAgg[pid] = { name: item.productName || "Unknown Product", quantity: 0, unit: item.unit };
+    }
+    productAgg[pid].quantity += parseFloat(String(item.quantity || 0));
+  }
+
+  const byProduct = Object.entries(productAgg).map(([productId, data]) => ({
+    productId: parseInt(productId, 10),
+    ...data,
+  })).sort((a, b) => b.quantity - a.quantity);
+
   res.json({
     from: dateFrom,
     to: dateTo,
@@ -173,6 +202,7 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
       discountTotal,
     },
     series,
+    byProduct,
     invoices: rows.map(r => ({
       id: r.id,
       invoiceNumber: r.invoiceNumber,

@@ -38,6 +38,7 @@ import {
   Building2,
   Filter,
   Printer,
+  Package,
 } from "lucide-react";
 
 const fmt = (n: number) =>
@@ -89,6 +90,12 @@ type SalesReportData = {
     withholdingAmount: number;
     cashRevenue: number;
     creditRevenue: number;
+  }[];
+  byProduct: {
+    productId: number;
+    name: string;
+    quantity: number;
+    unit: string;
   }[];
   invoices: {
     id: number;
@@ -165,6 +172,15 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
 
 
   const n = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2 });
+  const n3 = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+
+  const productRows = data.byProduct.map(p => `
+    <tr>
+      <td class="bold">${p.name}</td>
+      <td class="num bold teal">${n3(p.quantity)}</td>
+      <td>${p.unit}</td>
+    </tr>
+  `).join("");
 
   return `<!DOCTYPE html>
 <html lang="en">
@@ -211,6 +227,18 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
   ${filterLine ? `<span><b>Filters:</b> ${filterLine}</span>` : ""}
   <span style="margin-left:auto;"><b>Generated:</b> ${now}</span>
 </div>
+
+<h2>Sales by Product</h2>
+<table style="width:50%;">
+  <thead>
+    <tr>
+      <th>Product</th>
+      <th class="num">Total Quantity</th>
+      <th>Unit</th>
+    </tr>
+  </thead>
+  <tbody>${productRows}</tbody>
+</table>
 
 <h2>Invoice Details (${data.invoices.length} invoice${data.invoices.length !== 1 ? "s" : ""})</h2>
 <table>
@@ -528,6 +556,48 @@ export default function SalesReport() {
               </BarChart>
             </ResponsiveContainer>
           )}
+        </CardContent>
+      </Card>
+
+      {/* ── Sales by Product Summary ── */}
+      <Card>
+        <CardHeader className="pb-2">
+          <CardTitle className="text-base flex items-center gap-2">
+            <Package className="h-4 w-4 text-primary" />
+            Sales by Product Summary
+          </CardTitle>
+        </CardHeader>
+        <CardContent>
+          <div className="overflow-x-auto">
+            <Table>
+              <TableHeader>
+                <TableRow className="bg-muted/40">
+                  <TableHead>Product</TableHead>
+                  <TableHead className="text-right">Total Quantity Sold</TableHead>
+                  <TableHead>Unit</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {data?.byProduct.length === 0 ? (
+                  <TableRow>
+                    <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
+                      No products sold in this period.
+                    </TableCell>
+                  </TableRow>
+                ) : (
+                  data?.byProduct.map((p) => (
+                    <TableRow key={p.productId}>
+                      <TableCell className="font-semibold">{p.name}</TableCell>
+                      <TableCell className="text-right font-bold text-teal-600 dark:text-teal-400 font-mono">
+                        {p.quantity.toLocaleString("en-US", { maximumFractionDigits: 3 })}
+                      </TableCell>
+                      <TableCell className="text-muted-foreground">{p.unit}</TableCell>
+                    </TableRow>
+                  ))
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </CardContent>
       </Card>
 
