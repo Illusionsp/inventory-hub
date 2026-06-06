@@ -210,7 +210,7 @@
   }
 
   .glass-card {
-    @apply glass rounded-xl transition-all duration-300 hover:shadow-xl hover:translate-y-[-2px];
+    @apply bg-[var(--glass-bg)] border border-[var(--glass-border)] backdrop-blur-md shadow-lg rounded-xl transition-all duration-300 hover:shadow-xl hover:translate-y-[-2px];
   }
 }
 
