@@ -35,11 +35,11 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
   } = req.query as Record<string, string>;
 
   const today = new Date();
-  const thirtyDaysAgo = new Date(today);
-  thirtyDaysAgo.setDate(today.getDate() - 30);
+  const sixtyDaysAgo = new Date(today);
+  sixtyDaysAgo.setDate(today.getDate() - 60);
 
   const pad = (n: number) => String(n).padStart(2, "0");
-  const fallbackFrom = `${thirtyDaysAgo.getFullYear()}-${pad(thirtyDaysAgo.getMonth() + 1)}-${pad(thirtyDaysAgo.getDate())}`;
+  const fallbackFrom = `${sixtyDaysAgo.getFullYear()}-${pad(sixtyDaysAgo.getMonth() + 1)}-${pad(sixtyDaysAgo.getDate())}`;
   const fallbackTo = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
 
   const dateFrom = from || fallbackFrom;
@@ -175,9 +175,15 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
   const productIdStr = req.query.productId as string | undefined;
   const groupBy = (req.query.groupBy as string) || "daily";
 
-  const today = new Date();
-  const dateFrom = from || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
-  const dateTo = to || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const sixtyDaysAgo = new Date(today);
+  sixtyDaysAgo.setDate(today.getDate() - 60);
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fallbackFrom = `${sixtyDaysAgo.getFullYear()}-${pad(sixtyDaysAgo.getMonth() + 1)}-${pad(sixtyDaysAgo.getDate())}`;
+  const fallbackTo = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
+  const dateFrom = from || fallbackFrom;
+  const dateTo = to || fallbackTo;
 
   try {
     const conditions: SQL[] = [eq(productionBatchesTable.status, "completed")];

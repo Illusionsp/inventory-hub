@@ -99,10 +99,11 @@ type FilterState = {
 // ── Helpers ──────────────────────────────────────────────────────────────────
 function getDefaultDates() {
   const today = new Date();
+  const sixtyDaysAgo = new Date(today);
+  sixtyDaysAgo.setDate(today.getDate() - 60);
   const pad = (n: number) => String(n).padStart(2, "0");
-  const from = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-01`;
-  const to = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-  return { from, to };
+  const fmtDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+  return { from: fmtDate(sixtyDaysAgo), to: fmtDate(today) };
 }
 
 function buildParams(f: FilterState) {
@@ -566,7 +567,17 @@ export default function WastageReportPage() {
           {isLoading ? (
             <div className="p-6 space-y-2">{Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}</div>
           ) : byBatch.length === 0 ? (
-            <div className="p-10 text-center text-muted-foreground text-sm">No completed batches found for the selected filters</div>
+            <div className="p-10 text-center space-y-3">
+              <p className="text-muted-foreground text-sm">
+                No completed batches found for the selected period ({applied.from} to {applied.to}).
+              </p>
+              <p className="text-xs text-muted-foreground/70">
+                Try expanding the date range or clearing other filters.
+              </p>
+              <Button variant="outline" size="sm" onClick={handleReset}>
+                Reset Filters
+              </Button>
+            </div>
           ) : (
             <div className="overflow-x-auto">
               <Table>

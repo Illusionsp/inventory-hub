@@ -243,14 +243,14 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
 
 function getDefaultDates() {
   const today = new Date();
-  const thirtyDaysAgo = new Date(today);
-  thirtyDaysAgo.setDate(today.getDate() - 30);
+  const sixtyDaysAgo = new Date(today);
+  sixtyDaysAgo.setDate(today.getDate() - 60);
 
   const pad = (n: number) => String(n).padStart(2, "0");
   const fmtDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
 
   return {
-    from: fmtDate(thirtyDaysAgo),
+    from: fmtDate(sixtyDaysAgo),
     to: fmtDate(today)
   };
 }
