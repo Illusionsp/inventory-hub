@@ -379,4 +379,11 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
   }
 });
 
+// ── Diagnostic ───────────────────────────────────────────────────────────────
+router.get("/reports/debug", requireAuth, async (req, res): Promise<void> => {
+  const sales = await db.select().from(salesTable).limit(5);
+  const batches = await db.select().from(productionBatchesTable).limit(5);
+  res.json({ sales, batches });
+});
+
 export default router;
