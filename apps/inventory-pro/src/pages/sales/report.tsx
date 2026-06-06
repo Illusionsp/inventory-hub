@@ -243,10 +243,16 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
 
 function getDefaultDates() {
   const today = new Date();
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+
   const pad = (n: number) => String(n).padStart(2, "0");
-  const from = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-01`;
-  const to = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
-  return { from, to };
+  const fmtDate = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+
+  return {
+    from: fmtDate(thirtyDaysAgo),
+    to: fmtDate(today)
+  };
 }
 
 function buildParams(f: FilterState) {
@@ -539,8 +545,16 @@ export default function SalesReport() {
               {Array.from({ length: 5 }).map((_, i) => <Skeleton key={i} className="h-8 w-full" />)}
             </div>
           ) : invoices.length === 0 ? (
-            <div className="p-10 text-center text-muted-foreground text-sm">
-              No invoices found for the selected filters
+            <div className="p-10 text-center space-y-3">
+              <div className="text-muted-foreground text-sm">
+                No invoices found for the selected period ({applied.from} to {applied.to}).
+              </div>
+              <p className="text-xs text-muted-foreground/70">
+                Try expanding the date range or clearing other filters.
+              </p>
+              <Button variant="outline" size="sm" onClick={handleReset}>
+                Reset Filters
+              </Button>
             </div>
           ) : (
             <>

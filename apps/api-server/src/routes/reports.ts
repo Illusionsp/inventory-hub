@@ -10,6 +10,19 @@ import { requireAuth } from "../lib/auth";
 
 const router = Router();
 
+function normalizeDate(d: string | undefined, fallback: string): string {
+  if (!d) return fallback;
+  // If it's MM/DD/YYYY, convert to YYYY-MM-DD
+  if (d.includes("/")) {
+    const parts = d.split("/");
+    if (parts.length === 3) {
+      const [m, day, y] = parts;
+      if (y.length === 4) return `${y}-${m.padStart(2, "0")}-${day.padStart(2, "0")}`;
+    }
+  }
+  return d;
+}
+
 // ── Sales Report ────────────────────────────────────────────────────────────
 router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
   const {
@@ -22,8 +35,15 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
   } = req.query as Record<string, string>;
 
   const today = new Date();
-  const dateFrom = from || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-01`;
-  const dateTo = to || `${today.getFullYear()}-${String(today.getMonth() + 1).padStart(2, "0")}-${String(today.getDate()).padStart(2, "0")}`;
+  const thirtyDaysAgo = new Date(today);
+  thirtyDaysAgo.setDate(today.getDate() - 30);
+
+  const pad = (n: number) => String(n).padStart(2, "0");
+  const fallbackFrom = `${thirtyDaysAgo.getFullYear()}-${pad(thirtyDaysAgo.getMonth() + 1)}-${pad(thirtyDaysAgo.getDate())}`;
+  const fallbackTo = `${today.getFullYear()}-${pad(today.getMonth() + 1)}-${pad(today.getDate())}`;
+
+  const dateFrom = from || fallbackFrom;
+  const dateTo = to || fallbackTo;
 
   const conditions: SQL[] = [
     gte(sql`${salesTable.saleDate}::date`, sql`${dateFrom}::date`),
