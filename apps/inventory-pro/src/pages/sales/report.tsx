@@ -146,7 +146,10 @@ const STS_LABELS: Record<string, string> = {
 };
 
 function generatePrintHtml(data: SalesReportData, applied: FilterState): string {
-  const now = new Date().toLocaleString("en-US");
+  const now = new Date().toLocaleString("en-US", { dateStyle: "long", timeStyle: "short" });
+  const n = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2 });
+  const n3 = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 3 });
+  const PM_LABELS: Record<string, string> = { ...PAYMENT_METHOD_LABELS };
 
   const filterLine = [
     applied.paymentType && `Payment Type: ${applied.paymentType}`,
@@ -156,7 +159,6 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
 
 
   const invoiceRows = data.invoices.map(inv => {
-    const n = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2 });
     return `
       <tr>
         <td class="mono">${inv.invoiceNumber}</td>
@@ -178,10 +180,6 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
         </td>
       </tr>`;
   }).join("");
-
-
-  const n = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 2 });
-  const n3 = (v: number) => v.toLocaleString("en-US", { minimumFractionDigits: 0, maximumFractionDigits: 3 });
 
   const productRows = (data?.byProduct || []).map(p => `
     <tr>
