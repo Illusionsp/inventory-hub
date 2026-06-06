@@ -70,49 +70,52 @@ const navGroups: NavGroup[] = [
   {
     title: "Inventory & Production",
     items: [
-      { title: "Opening Stock",      icon: PackagePlus,    url: "/opening-stock",       permission: "can_manage_inventory" },
-      { title: "Stock Levels",       icon: Package,        url: "/inventory",            permission: "can_manage_inventory" },
-      { title: "Movements",          icon: ArrowRightLeft, url: "/inventory/movements",  permission: "can_manage_inventory" },
-      { title: "Production Batches", icon: Factory,        url: "/production",           permission: "can_create_batch_production" },
-      { title: "Wastage Report",     icon: AlertTriangle,  url: "/production/wastage",   permission: "can_view_reports" },
-      { title: "Requesting",         icon: SendHorizonal,  url: "/store-requests",       permission: "can_view_request_status", activeFor: ["/transfers"] },
-      { title: "Goods Receiving",    icon: ClipboardList,  url: "/grn",                  permission: "can_view_request_status" },
+      { title: "Opening Stock", icon: PackagePlus, url: "/opening-stock", permission: "can_manage_inventory" },
+      { title: "Stock Levels", icon: Package, url: "/inventory", permission: "can_manage_inventory" },
+      { title: "Movements", icon: ArrowRightLeft, url: "/inventory/movements", permission: "can_manage_inventory" },
+      { title: "Production Batches", icon: Factory, url: "/production", permission: "can_create_batch_production" },
+      { title: "Wastage Report", icon: AlertTriangle, url: "/production/wastage", permission: "can_view_reports" },
+      { title: "Requesting", icon: SendHorizonal, url: "/store-requests", permission: "can_view_request_status", activeFor: ["/transfers"] },
+      { title: "Goods Receiving", icon: ClipboardList, url: "/grn", permission: "can_view_request_status" },
     ],
   },
   {
     title: "Sales & Customers",
     items: [
-      { title: "Sales Invoices", icon: ShoppingCart, url: "/sales",        permission: "can_view_reports" },
-      { title: "Sales Report",   icon: BarChart2,    url: "/sales/report", permission: "can_view_reports" },
-      { title: "Payments",       icon: CreditCard,   url: "/payments",     permission: "can_view_reports" },
-      { title: "Customers",      icon: Users,        url: "/customers",    permission: "can_view_reports" },
+      { title: "Sales Invoices", icon: ShoppingCart, url: "/sales", permission: "can_view_reports" },
+      { title: "Sales Report", icon: BarChart2, url: "/sales/report", permission: "can_view_reports" },
+      { title: "Payments", icon: CreditCard, url: "/payments", permission: "can_view_reports" },
+      { title: "Customers", icon: Users, url: "/customers", permission: "can_view_reports" },
     ],
   },
   {
     title: "Master Data",
     items: [
-      { title: "Products",   icon: Package, url: "/products",   permission: "can_manage_inventory" },
-      { title: "Categories", icon: Box,     url: "/categories", permission: "can_manage_inventory" },
-      { title: "Suppliers",  icon: Store,   url: "/suppliers",  permission: "can_view_reports" },
+      { title: "Products", icon: Package, url: "/products", permission: "can_manage_inventory" },
+      { title: "Categories", icon: Box, url: "/categories", permission: "can_manage_inventory" },
+      { title: "Suppliers", icon: Store, url: "/suppliers", permission: "can_view_reports" },
     ],
   },
   {
     title: "Administration",
     items: [
-      { title: "Stores",    icon: Store,    url: "/stores", roles: ["super_admin"] },
-      { title: "Users",     icon: Users,    url: "/users",  roles: ["super_admin"] },
-      { title: "Audit Log", icon: FileText, url: "/audit",  roles: ["super_admin"] },
+      { title: "Stores", icon: Store, url: "/stores", roles: ["super_admin"] },
+      { title: "Users", icon: Users, url: "/users", roles: ["super_admin"] },
+      { title: "Audit Log", icon: FileText, url: "/audit", roles: ["super_admin"] },
     ],
   },
 ];
 
 const ROLE_BADGE_COLORS: Record<string, string> = {
-  super_admin:   "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
+  super_admin: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   store_manager: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
-  finance:       "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
-  approver:      "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  store_user: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
+  production_manager: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
+  finance: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple- Purple-300",
+  finance_officer: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  approver: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   sales_officer: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
-  accountant:    "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
+  accountant: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",
 };
 
 function canAccess(
