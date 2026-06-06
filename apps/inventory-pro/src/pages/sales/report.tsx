@@ -578,14 +578,14 @@ export default function SalesReport() {
                 </TableRow>
               </TableHeader>
               <TableBody>
-                {data?.byProduct.length === 0 ? (
+                {(!data?.byProduct || data.byProduct.length === 0) ? (
                   <TableRow>
                     <TableCell colSpan={3} className="h-24 text-center text-muted-foreground">
                       No products sold in this period.
                     </TableCell>
                   </TableRow>
                 ) : (
-                  data?.byProduct.map((p) => (
+                  data.byProduct.map((p) => (
                     <TableRow key={p.productId}>
                       <TableCell className="font-semibold">{p.name}</TableCell>
                       <TableCell className="text-right font-bold text-teal-600 dark:text-teal-400 font-mono">
