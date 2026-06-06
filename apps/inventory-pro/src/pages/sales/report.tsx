@@ -115,6 +115,11 @@ type SalesReportData = {
     totalAmount: number;
     paidAmount: number;
     balanceDue: number;
+    items: {
+      name: string;
+      quantity: number;
+      unit: string;
+    }[];
   }[];
 };
 
@@ -166,7 +171,11 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
         <td class="num${inv.vatAmount > 0 ? " amber" : ""}">${inv.vatAmount > 0 ? n(inv.vatAmount) : "—"}</td>
         <td class="num${inv.withholdingAmount > 0 ? " red" : ""}">${inv.withholdingAmount > 0 ? n(inv.withholdingAmount) : "—"}</td>
         <td class="num bold">${n(inv.totalAmount)}</td>
-        <td class="num${inv.balanceDue > 0 ? " red" : ""}">${inv.balanceDue > 0 ? n(inv.balanceDue) : "—"}</td>
+        <td>
+          <div style="font-size: 9px; line-height: 1.1; color: #555;">
+            ${inv.items.map(it => `<div>● ${n3(it.quantity)} ${it.unit} ${it.name}</div>`).join("")}
+          </div>
+        </td>
       </tr>`;
   }).join("");
 
@@ -247,7 +256,7 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
       <th>Invoice #</th><th>FS #</th><th>Date</th><th>Buyer</th>
       <th>Pay Type</th><th>Method</th><th>Bank</th><th>Status</th>
       <th class="num">Subtotal</th><th class="num">VAT</th><th class="num">WHT</th>
-      <th class="num">Total</th><th class="num">Balance</th>
+      <th class="num">Total</th><th>Items Sold</th>
     </tr>
   </thead>
   <tbody>${invoiceRows}</tbody>
@@ -258,7 +267,7 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
       <td class="num amber">${n(data.invoices.reduce((a, i) => a + i.vatAmount, 0))}</td>
       <td class="num red">${n(data.invoices.reduce((a, i) => a + i.withholdingAmount, 0))}</td>
       <td class="num">${n(data.invoices.reduce((a, i) => a + i.totalAmount, 0))}</td>
-      <td class="num red">${n(data.invoices.reduce((a, i) => a + i.balanceDue, 0))}</td>
+      <td></td>
     </tr>
   </tfoot>
 </table>
@@ -641,6 +650,7 @@ export default function SalesReport() {
                       <TableHead className="whitespace-nowrap">FS #</TableHead>
                       <TableHead className="whitespace-nowrap">Date</TableHead>
                       <TableHead className="whitespace-nowrap">Buyer</TableHead>
+                      <TableHead className="whitespace-nowrap">Items Sold</TableHead>
                       <TableHead className="whitespace-nowrap">Pay Type</TableHead>
                       <TableHead className="whitespace-nowrap">Method</TableHead>
                       <TableHead className="whitespace-nowrap">Bank</TableHead>
@@ -663,6 +673,17 @@ export default function SalesReport() {
                         <TableCell className="whitespace-nowrap">{inv.saleDate}</TableCell>
                         <TableCell className="whitespace-nowrap max-w-[140px] truncate" title={inv.customerName ?? undefined}>
                           {inv.customerName ?? "—"}
+                        </TableCell>
+                        <TableCell className="text-[10px] text-muted-foreground leading-tight py-1 min-w-[120px]">
+                          {inv.items.map((it, idx) => (
+                            <div key={idx} className="flex gap-1 whitespace-nowrap">
+                              <span className="font-bold text-teal-600 dark:text-teal-400">
+                                {it.quantity.toLocaleString("en-US", { maximumFractionDigits: 3 })}
+                              </span>
+                              <span>{it.unit}</span>
+                              <span className="truncate max-w-[80px]" title={it.name}>{it.name}</span>
+                            </div>
+                          ))}
                         </TableCell>
                         <TableCell>
                           <span className={`px-1.5 py-0.5 rounded-full text-[10px] font-semibold uppercase tracking-wide ${inv.paymentType === "cash" ? "bg-teal-100 text-teal-700 dark:bg-teal-900/30 dark:text-teal-400" : "bg-purple-100 text-purple-700 dark:bg-purple-900/30 dark:text-purple-400"}`}>
