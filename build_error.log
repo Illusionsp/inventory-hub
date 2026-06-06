@@ -1,0 +1,24 @@
+
+> @workspace/inventory-pro@0.0.0 build /home/as/Downloads/ReplitExport-zumranuruawoker(1)/Inventory-Hub/apps/inventory-pro
+> vite build --config vite.config.ts
+
+vite v7.3.3 building client environment for production...
+transforming...
+✓ 7 modules transformed.
+✗ Build failed in 811ms
+error during build:
+[@tailwindcss/vite:generate:build] Cannot apply unknown utility class `glass`
+file: /home/as/Downloads/ReplitExport-zumranuruawoker(1)/Inventory-Hub/apps/inventory-pro/src/index.css
+    at onInvalidCandidate (file:///home/as/Downloads/ReplitExport-zumranuruawoker(1)/Inventory-Hub/node_modules/.pnpm/tailwindcss@4.3.0/node_modules/tailwindcss/dist/lib.mjs:21:1511)
+    at $e (file:///home/as/Downloads/ReplitExport-zumranuruawoker(1)/Inventory-Hub/node_modules/.pnpm/tailwindcss@4.3.0/node_modules/tailwindcss/dist/lib.mjs:16:38457)
+    at file:///home/as/Downloads/ReplitExport-zumranuruawoker(1)/Inventory-Hub/node_modules/.pnpm/tailwindcss@4.3.0/node_modules/tailwindcss/dist/lib.mjs:21:355
+    at $r (file:///home/as/Downloads/ReplitExport-zumranuruawoker(1)/Inventory-Hub/node_modules/.pnpm/tailwindcss@4.3.0/node_modules/tailwindcss/dist/lib.mjs:3:1733)
+    at I (file:///home/as/Downloads/ReplitExport-zumranuruawoker(1)/Inventory-Hub/node_modules/.pnpm/tailwindcss@4.3.0/node_modules/tailwindcss/dist/lib.mjs:3:1377)
+    at Ce (file:///home/as/Downloads/ReplitExport-zumranuruawoker(1)/Inventory-Hub/node_modules/.pnpm/tailwindcss@4.3.0/node_modules/tailwindcss/dist/lib.mjs:21:172)
+    at Hi (file:///home/as/Downloads/ReplitExport-zumranuruawoker(1)/Inventory-Hub/node_modules/.pnpm/tailwindcss@4.3.0/node_modules/tailwindcss/dist/lib.mjs:38:294)
+    at async ma (file:///home/as/Downloads/ReplitExport-zumranuruawoker(1)/Inventory-Hub/node_modules/.pnpm/tailwindcss@4.3.0/node_modules/tailwindcss/dist/lib.mjs:38:631)
+    at async wf (file:///home/as/Downloads/ReplitExport-zumranuruawoker(1)/Inventory-Hub/node_modules/.pnpm/tailwindcss@4.3.0/node_modules/tailwindcss/dist/lib.mjs:38:1406)
+    at async su (file:///home/as/Downloads/ReplitExport-zumranuruawoker(1)/Inventory-Hub/node_modules/.pnpm/@tailwindcss+node@4.3.0/node_modules/@tailwindcss/node/dist/index.mjs:10:3457)
+/home/as/Downloads/ReplitExport-zumranuruawoker(1)/Inventory-Hub/apps/inventory-pro:
+ ERR_PNPM_RECURSIVE_RUN_FIRST_FAIL  @workspace/inventory-pro@0.0.0 build: `vite build --config vite.config.ts`
+Exit status 1

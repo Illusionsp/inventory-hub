@@ -3,6 +3,30 @@ import { eq, and, ilike, SQL, desc, gte, lte, sql } from "drizzle-orm";
 import { db, salesTable, saleItemsTable, customersTable, inventoryTable, inventoryMovementsTable } from "@workspace/db";
 import { requireAuth } from "../lib/auth";
 import { notifyByPermission } from "../lib/notify";
+import { usersTable } from "@workspace/db";
+
+function normalizeDate(d: string | null | undefined): string | null {
+  if (!d) return null;
+  const s = String(d).trim();
+  if (!s) return null;
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
+  if (s.includes("/")) {
+    const parts = s.split("/");
+    if (parts.length === 3) {
+      let [p1, p2, p3] = parts;
+      if (p3.length === 4) {
+        if (parseInt(p1, 10) > 12) return `${p3}-${p2.padStart(2, "0")}-${p1.padStart(2, "0")}`;
+        if (parseInt(p2, 10) > 12) return `${p3}-${p1.padStart(2, "0")}-${p2.padStart(2, "0")}`;
+        return `${p3}-${p2.padStart(2, "0")}-${p1.padStart(2, "0")}`;
+      }
+    }
+  }
+  try {
+    const parsed = new Date(s);
+    if (!isNaN(parsed.getTime())) return parsed.toISOString().split("T")[0];
+  } catch { }
+  return s;
+}
 
 const router = Router();
 
@@ -22,13 +46,10 @@ router.get("/sales", requireAuth, async (req, res): Promise<void> => {
   if (customerId) conditions.push(eq(salesTable.customerId, parseInt(customerId, 10)));
   if (search) conditions.push(ilike(salesTable.invoiceNumber, `%${search}%`));
 
-  // Date range filters to match the sales report exactly
-  if (from) conditions.push(gte(sql`${salesTable.saleDate}::date`, sql`${from}::date`));
-  if (to) conditions.push(lte(sql`${salesTable.saleDate}::date`, sql`${to}::date`));
-
   const where = conditions.length > 0 ? and(...conditions) : undefined;
 
-  const rows = await db
+  // Fetch more broadly if date filters are present to handle format variations
+  const allRows = await db
     .select({
       id: salesTable.id,
       invoiceNumber: salesTable.invoiceNumber,
@@ -55,14 +76,27 @@ router.get("/sales", requireAuth, async (req, res): Promise<void> => {
     })
     .from(salesTable)
     .leftJoin(customersTable, eq(salesTable.customerId, customersTable.id))
-    .where(where)
-    // Synchronized sorting with reports.ts
-    .orderBy(desc(salesTable.saleDate), desc(salesTable.createdAt))
-    .limit(limitNum)
-    .offset(offset);
+    .where(where);
 
-  const total = await db.$count(salesTable, where);
-  const data = rows.map(r => ({ ...r, salespersonName: null, items: [] }));
+  // Apply date filters and sorting in-memory for robustness
+  const normFrom = normalizeDate(from);
+  const normTo = normalizeDate(to);
+
+  const filteredRows = allRows.filter(r => {
+    const d = normalizeDate(r.saleDate);
+    if (!d) return (from || to) ? false : true;
+    if (normFrom && d < normFrom) return false;
+    if (normTo && d > normTo) return false;
+    return true;
+  }).sort((a, b) => {
+    const da = normalizeDate(a.saleDate) || "";
+    const db = normalizeDate(b.saleDate) || "";
+    if (da !== db) return db.localeCompare(da);
+    return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);
+  });
+
+  const total = filteredRows.length;
+  const data = filteredRows.slice(offset, offset + limitNum).map(r => ({ ...r, salespersonName: null, items: [] }));
   res.json({ data, total, page: pageNum, limit: limitNum });
 });
 

@@ -10,17 +10,35 @@ import { requireAuth } from "../lib/auth";
 
 const router = Router();
 
-function normalizeDate(d: string | undefined, fallback: string): string {
-  if (!d) return fallback;
-  // If it's MM/DD/YYYY, convert to YYYY-MM-DD
-  if (d.includes("/")) {
-    const parts = d.split("/");
+function normalizeDate(d: string | null | undefined): string | null {
+  if (!d) return null;
+  const s = String(d).trim();
+  if (!s) return null;
+  // If it's already YYYY-MM-DD
+  if (/^\d{4}-\d{2}-\d{2}/.test(s)) return s.substring(0, 10);
+  // If it's MM/DD/YYYY or DD/MM/YYYY
+  if (s.includes("/")) {
+    const parts = s.split("/");
     if (parts.length === 3) {
-      const [m, day, y] = parts;
-      if (y.length === 4) return `${y}-${m.padStart(2, "0")}-${day.padStart(2, "0")}`;
+      let [p1, p2, p3] = parts;
+      // Assume YYYY at the end
+      if (p3.length === 4) {
+        // We don't know if p1 is MM or DD. But 99% of these systems use DD/MM/YYYY or YYYY-MM-DD.
+        // Let's try to be smart: if p1 > 12, it's definitely DD.
+        if (parseInt(p1, 10) > 12) return `${p3}-${p2.padStart(2, "0")}-${p1.padStart(2, "0")}`;
+        // If p2 > 12, it's definitely MM/DD/YYYY
+        if (parseInt(p2, 10) > 12) return `${p3}-${p1.padStart(2, "0")}-${p2.padStart(2, "0")}`;
+        // Fallback: assume DD/MM/YYYY (common in Ethiopia/Europe)
+        return `${p3}-${p2.padStart(2, "0")}-${p1.padStart(2, "0")}`;
+      }
     }
   }
-  return d;
+  // Try JS Date as last resort
+  try {
+    const parsed = new Date(s);
+    if (!isNaN(parsed.getTime())) return parsed.toISOString().split("T")[0];
+  } catch { }
+  return s;
 }
 
 // ── Sales Report ────────────────────────────────────────────────────────────
@@ -45,17 +63,8 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
   const dateFrom = from || fallbackFrom;
   const dateTo = to || fallbackTo;
 
-  const conditions: SQL[] = [
-    gte(sql`${salesTable.saleDate}::date`, sql`${dateFrom}::date`),
-    lte(sql`${salesTable.saleDate}::date`, sql`${dateTo}::date`),
-  ];
-  if (paymentType) conditions.push(eq(salesTable.paymentType, paymentType));
-  if (paymentMethod) conditions.push(eq(salesTable.paymentMethod, paymentMethod));
-  if (status) conditions.push(eq(salesTable.status, status));
-
-  const where = and(...conditions);
-
-  const rows = await db
+  // Fetch more broadly and filter in-memory to handle varying date formats safely
+  const allRows = await db
     .select({
       id: salesTable.id,
       invoiceNumber: salesTable.invoiceNumber,
@@ -78,9 +87,28 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
       createdAt: salesTable.createdAt,
     })
     .from(salesTable)
-    .leftJoin(customersTable, eq(salesTable.customerId, customersTable.id))
-    .where(where)
-    .orderBy(desc(salesTable.saleDate), desc(salesTable.createdAt)); // Native DB sort descending
+    .leftJoin(customersTable, eq(salesTable.customerId, customersTable.id));
+
+  // Apply filters in JS for maximum reliability
+  const normFrom = normalizeDate(dateFrom);
+  const normTo = normalizeDate(dateTo);
+
+  const rows = allRows.filter(r => {
+    const d = normalizeDate(r.saleDate);
+    if (!d) return false;
+    if (normFrom && d < normFrom) return false;
+    if (normTo && d > normTo) return false;
+    if (paymentType && r.paymentType !== paymentType) return false;
+    if (paymentMethod && r.paymentMethod !== paymentMethod) return false;
+    if (status && r.status !== status) return false;
+    return true;
+  }).sort((a, b) => {
+    // Sort descending by date
+    const da = normalizeDate(a.saleDate) || "";
+    const db = normalizeDate(b.saleDate) || "";
+    if (da !== db) return db.localeCompare(da);
+    return (b.createdAt?.getTime() ?? 0) - (a.createdAt?.getTime() ?? 0);
+  });
 
   let totalRevenue = 0;
   let cashRevenue = 0;
@@ -174,6 +202,7 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
   const storeIdStr = req.query.storeId as string | undefined;
   const productIdStr = req.query.productId as string | undefined;
   const groupBy = (req.query.groupBy as string) || "daily";
+  const today = new Date();
 
   const sixtyDaysAgo = new Date(today);
   sixtyDaysAgo.setDate(today.getDate() - 60);
@@ -218,12 +247,13 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
       .where(and(...conditions))
       .orderBy(productionBatchesTable.productionDate);
 
-    // In-memory date filtering to prevent SQL comparison crashes
+    const normFrom = normalizeDate(dateFrom);
+    const normTo = normalizeDate(dateTo);
     const filteredByDate = batches.filter(b => {
-      if (!b.completedAt) return false;
-      const completedStr = new Date(b.completedAt).toISOString().split("T")[0];
-      if (from && completedStr < from) return false;
-      if (to && completedStr > to) return false;
+      const d = b.productionDate ? normalizeDate(b.productionDate) : (b.completedAt ? normalizeDate(b.completedAt.toISOString()) : null);
+      if (!d) return false;
+      if (normFrom && d < normFrom) return false;
+      if (normTo && d > normTo) return false;
       return true;
     });
 
@@ -377,13 +407,6 @@ router.get("/reports/wastage", requireAuth, async (req, res): Promise<void> => {
   } catch (err: any) {
     res.status(500).json({ error: "Report calculation failed", message: err.message, stack: err.stack });
   }
-});
-
-// ── Diagnostic ───────────────────────────────────────────────────────────────
-router.get("/reports/debug", requireAuth, async (req, res): Promise<void> => {
-  const sales = await db.select().from(salesTable).limit(5);
-  const batches = await db.select().from(productionBatchesTable).limit(5);
-  res.json({ sales, batches });
 });
 
 export default router;
