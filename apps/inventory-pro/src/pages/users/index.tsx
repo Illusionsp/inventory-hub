@@ -45,17 +45,17 @@ const ROLE_LABEL: Record<string, string> = {
 
 const PERMISSION_LIST = [
   // ── Operational permissions ────────────────────────────────────────────
-  { key: "can_create_store_requests",  label: "Create Store Requests",       description: "Can create store-to-store requests" },
-  { key: "can_receive_items",          label: "Receive Items",               description: "Can mark GRNs and store requests as received" },
-  { key: "can_view_request_status",    label: "View Request Status",         description: "Can view status of all pending requests" },
-  { key: "can_create_batch_production",label: "Create Production Batches",   description: "Can start new production batch runs" },
-  { key: "can_manage_inventory",       label: "Manage Inventory",            description: "Can add, edit, or adjust inventory stock levels" },
-  { key: "can_view_reports",           label: "View Reports & Analytics",    description: "Can access sales reports and dashboard analytics" },
+  { key: "can_create_store_requests", label: "Create Store Requests", description: "Can create store-to-store requests" },
+  { key: "can_receive_items", label: "Receive Items", description: "Can mark GRNs and store requests as received" },
+  { key: "can_view_request_status", label: "View Request Status", description: "Can view status of all pending requests" },
+  { key: "can_create_batch_production", label: "Create Production Batches", description: "Can start new production batch runs" },
+  { key: "can_manage_inventory", label: "Manage Inventory", description: "Can add, edit, or adjust inventory stock levels" },
+  { key: "can_view_reports", label: "View Reports & Analytics", description: "Can access sales reports and dashboard analytics" },
   // ── Module-specific approval permissions ──────────────────────────────
-  { key: "can_approve_grn",            label: "Approve GRN",                 description: "Can approve or reject Goods Received Notes" },
-  { key: "can_approve_store_requests", label: "Approve Store Requests",      description: "Can approve or reject store-to-store transfer requests" },
-  { key: "can_approve_dispatch",       label: "Approve Dispatch",            description: "Can dispatch items to fulfil a store request or production batch" },
-  { key: "can_approve_production",     label: "Approve Production Batches",  description: "Can complete a production batch (record actual output & wastage)" },
+  { key: "can_approve_grn", label: "Approve GRN", description: "Can approve or reject Goods Received Notes" },
+  { key: "can_approve_store_requests", label: "Approve Store Requests", description: "Can approve or reject store-to-store transfer requests" },
+  { key: "can_approve_dispatch", label: "Approve Dispatch", description: "Can dispatch items to fulfil a store request or production batch" },
+  { key: "can_approve_production", label: "Approve Production Batches", description: "Can complete a production batch (record actual output & wastage)" },
 ] as const;
 
 const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
@@ -63,7 +63,7 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
   store_manager: [
     "can_create_store_requests", "can_receive_items", "can_view_request_status",
     "can_manage_inventory", "can_view_reports", "can_create_batch_production",
-    "can_approve_store_requests", "can_approve_dispatch",
+    "can_approve_store_requests", "can_approve_dispatch", "can_approve_grn",
   ],
   approver: [
     "can_approve_grn", "can_approve_store_requests",
@@ -509,9 +509,8 @@ export default function UsersPage() {
                   {PERMISSION_LIST.map(perm => (
                     <div
                       key={perm.key}
-                      className={`flex items-start gap-3 rounded-md p-2 transition-colors ${
-                        eUseRoleDefaults ? "opacity-60" : "hover:bg-accent/40"
-                      }`}
+                      className={`flex items-start gap-3 rounded-md p-2 transition-colors ${eUseRoleDefaults ? "opacity-60" : "hover:bg-accent/40"
+                        }`}
                     >
                       <Checkbox
                         id={`perm-${perm.key}`}

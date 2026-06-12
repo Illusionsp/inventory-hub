@@ -109,10 +109,7 @@ const navGroups: NavGroup[] = [
 const ROLE_BADGE_COLORS: Record<string, string> = {
   super_admin: "bg-amber-100 text-amber-800 dark:bg-amber-900/30 dark:text-amber-300",
   store_manager: "bg-teal-100 text-teal-800 dark:bg-teal-900/30 dark:text-teal-300",
-  store_user: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
-  production_manager: "bg-orange-100 text-orange-800 dark:bg-orange-900/30 dark:text-orange-300",
-  finance: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple- Purple-300",
-  finance_officer: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
+  finance: "bg-purple-100 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300",
   approver: "bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300",
   sales_officer: "bg-rose-100 text-rose-800 dark:bg-rose-900/30 dark:text-rose-300",
   accountant: "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300",

@@ -81,16 +81,20 @@ export default function StoreRequestDetail({ id }: { id: string }) {
   const isReceivingStore = userStoreId === request.receivingStoreId;
   const isRequestingStore = userStoreId === request.requestingStoreId;
   const isSuperAdmin = user?.role === "super_admin";
+  const isApprover = user?.role === "approver";
 
   const canApproveReject =
     hasPermission("can_approve_store_requests") &&
-    (isSuperAdmin || isReceivingStore) &&
+    (isSuperAdmin || isApprover || isReceivingStore) &&
     request.status === "pending";
   const canSend =
     hasPermission("can_approve_dispatch") &&
-    (isSuperAdmin || isRequestingStore) &&
+    (isSuperAdmin || isApprover || isRequestingStore) &&
     request.status === "approved";
-  const canReceive = (isReceivingStore || isSuperAdmin) && request.status === "sent";
+  const canReceive =
+    hasPermission("can_receive_items") &&
+    (isSuperAdmin || isApprover || isReceivingStore) &&
+    request.status === "sent";
 
   return (
     <div className="p-6 space-y-6">
@@ -192,15 +196,14 @@ export default function StoreRequestDetail({ id }: { id: string }) {
               return (
                 <div key={s} className="flex items-center gap-2">
                   <div
-                    className={`px-3 py-1 rounded-full text-xs font-medium border ${
-                      isRejected
+                    className={`px-3 py-1 rounded-full text-xs font-medium border ${isRejected
                         ? "bg-destructive/10 text-destructive border-destructive/30"
                         : isActive
                           ? "bg-primary text-primary-foreground border-primary"
                           : isDone
                             ? "bg-muted text-muted-foreground border-muted-foreground/30"
                             : "border-muted text-muted-foreground/50"
-                    }`}
+                      }`}
                   >
                     {isRejected ? "Rejected" : STATUS_LABEL[s]}
                   </div>
