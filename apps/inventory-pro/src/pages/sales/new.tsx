@@ -61,6 +61,10 @@ export default function SalesNew() {
       toast({ title: "Please fill all required fields, including dispatch store", variant: "destructive" });
       return;
     }
+    if (paymentType === "credit" && !dueDate) {
+      toast({ title: "Due Date is required for credit sales", variant: "destructive" });
+      return;
+    }
 
     createSale.mutate({
       data: {
@@ -114,6 +118,11 @@ export default function SalesNew() {
                 <SelectTrigger><SelectValue placeholder="Select customer" /></SelectTrigger>
                 <SelectContent>{(customersData?.data ?? []).map((c: any) => <SelectItem key={c.id} value={String(c.id)}>{c.name}</SelectItem>)}</SelectContent>
               </Select>
+              {customerId && (
+                <p className="text-xs text-muted-foreground mt-1">
+                  TIN: {(customersData?.data ?? []).find((c: any) => String(c.id) === customerId)?.taxNumber || "Not provided (Update in Customers tab)"}
+                </p>
+              )}
             </div>
             <div className="space-y-1.5">
               <Label>Sale Date *</Label>
@@ -148,7 +157,7 @@ export default function SalesNew() {
             )}
             {paymentType === "credit" && (
               <div className="space-y-1.5">
-                <Label>Due Date</Label>
+                <Label>Due Date *</Label>
                 <Input type="date" value={dueDate} onChange={e => setDueDate(e.target.value)} />
               </div>
             )}

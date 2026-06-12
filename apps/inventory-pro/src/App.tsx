@@ -4,6 +4,7 @@ import { Toaster } from "@/components/ui/toaster";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { AuthProvider, useAuth } from "@/lib/auth";
 import { AppLayout } from "@/components/layout/app-layout";
+import { PosLayout } from "@/components/layout/pos-layout";
 import NotFound from "@/pages/not-found";
 
 import Login from "@/pages/login";
@@ -71,7 +72,7 @@ const queryClient = new QueryClient({
   },
 });
 
-function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any>; [key: string]: any }) {
+function ProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any>;[key: string]: any }) {
   const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
@@ -93,6 +94,29 @@ function ProtectedRoute({ component: Component, ...rest }: { component: React.Co
     <AppLayout>
       <Component {...rest} />
     </AppLayout>
+  );
+}
+
+function PosProtectedRoute({ component: Component, ...rest }: { component: React.ComponentType<any>;[key: string]: any }) {
+  const { isAuthenticated, isLoading } = useAuth();
+
+  if (isLoading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-background">
+        <div className="text-center">
+          <div className="w-8 h-8 border-4 border-primary border-t-transparent rounded-full animate-spin mx-auto mb-4"></div>
+          <p className="text-muted-foreground text-sm">Loading...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (!isAuthenticated) return <Redirect to="/login" />;
+
+  return (
+    <PosLayout>
+      <Component {...rest} />
+    </PosLayout>
   );
 }
 
@@ -124,10 +148,19 @@ function Router() {
       <Route path="/production/wastage">{() => <ProtectedRoute component={WastageReport} />}</Route>
       <Route path="/production/new">{() => <ProtectedRoute component={ProductionNew} />}</Route>
       <Route path="/production/:id">{(params) => <ProtectedRoute component={ProductionDetail} id={params.id} />}</Route>
+
+      {/* Admin/Manager Sales Namespace */}
       <Route path="/sales">{() => <ProtectedRoute component={SalesList} />}</Route>
       <Route path="/sales/report">{() => <ProtectedRoute component={SalesReport} />}</Route>
       <Route path="/sales/new">{() => <ProtectedRoute component={SalesNew} />}</Route>
       <Route path="/sales/:id">{(params) => <ProtectedRoute component={SaleDetail} id={params.id} />}</Route>
+
+      {/* Point of Sale (POS) Namespace for Sales Officers */}
+      <Route path="/pos">{() => <PosProtectedRoute component={SalesList} />}</Route>
+      <Route path="/pos/report">{() => <PosProtectedRoute component={SalesReport} />}</Route>
+      <Route path="/pos/new">{() => <PosProtectedRoute component={SalesNew} />}</Route>
+      <Route path="/pos/:id">{(params) => <PosProtectedRoute component={SaleDetail} id={params.id} />}</Route>
+
       <Route path="/payments">{() => <ProtectedRoute component={Payments} />}</Route>
       <Route path="/users">{() => <ProtectedRoute component={Users} />}</Route>
       <Route path="/stores">{() => <ProtectedRoute component={Stores} />}</Route>

@@ -107,6 +107,20 @@ router.post("/sales", requireAuth, async (req, res): Promise<void> => {
     return;
   }
 
+  // Credit blocker logic: Prevent new credit sales if customer has unpaid balances
+  if (paymentType === "credit") {
+    // Check for previous unpaid sales
+    const previousUnpaidSales = await db
+      .select({ id: salesTable.id })
+      .from(salesTable)
+      .where(and(eq(salesTable.customerId, customerId), sql`${salesTable.balanceDue} > 0`));
+
+    if (previousUnpaidSales.length > 0) {
+      res.status(403).json({ error: `Customer has ${previousUnpaidSales.length} unpaid invoice(s). Must clear balances before taking new credit.` });
+      return;
+    }
+  }
+
   const subtotal = items.reduce((s: number, i: { totalPrice: number }) => s + Number(i.totalPrice), 0);
   const vatAmount = vatApplicable ? subtotal * 0.15 : 0;
   const totalAmount = subtotal + vatAmount;
@@ -145,9 +159,10 @@ router.post("/sales", requireAuth, async (req, res): Promise<void> => {
 
   // Update customer credit balance if credit sale
   if (paymentType === "credit") {
+    // Fix: Add to existing balance instead of replacing
     await db
       .update(customersTable)
-      .set({ creditBalance: balanceDue.toString() })
+      .set({ creditBalance: sql`${customersTable.creditBalance} + ${balanceDue}` })
       .where(eq(customersTable.id, customerId));
 
     // Notify finance / supervisors about the new credit liability

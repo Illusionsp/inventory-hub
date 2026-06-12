@@ -8,7 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { Plus, ShoppingCart, Search } from "lucide-react";
+import { Plus, ShoppingCart, Search, AlertTriangle } from "lucide-react";
 
 const STATUS_BADGE: Record<string, string> = {
   paid: "default", credit: "outline", partially_paid: "secondary", overdue: "destructive",
@@ -69,6 +69,7 @@ export default function SalesList() {
                   <TableHead>Date</TableHead>
                   <TableHead>Customer</TableHead>
                   <TableHead>Payment</TableHead>
+                  <TableHead>Due Date</TableHead>
                   <TableHead className="text-right">Total</TableHead>
                   <TableHead className="text-right">Paid</TableHead>
                   <TableHead className="text-right">Balance</TableHead>
@@ -84,23 +85,35 @@ export default function SalesList() {
                       No invoices found
                     </TableCell>
                   </TableRow>
-                ) : (data?.data ?? []).map((s: any) => (
-                  <TableRow key={s.id} className="cursor-pointer hover:bg-muted/50" onClick={() => setLocation(`/sales/${s.id}`)} data-testid={`row-sale-${s.id}`}>
-                    <TableCell className="font-mono text-sm font-semibold">{s.invoiceNumber}</TableCell>
-                    <TableCell className="text-sm">{s.saleDate}</TableCell>
-                    <TableCell>{s.customerName ?? `Customer #${s.customerId}`}</TableCell>
-                    <TableCell className="capitalize text-sm">{s.paymentType}</TableCell>
-                    <TableCell className="text-right text-sm">ETB {parseFloat(s.totalAmount).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-sm">ETB {parseFloat(s.paidAmount).toLocaleString()}</TableCell>
-                    <TableCell className="text-right text-sm font-medium">{parseFloat(s.balanceDue) > 0 ? `ETB ${parseFloat(s.balanceDue).toLocaleString()}` : "—"}</TableCell>
-                    <TableCell>
-                      <Badge variant={STATUS_BADGE[s.status] as any}>{s.status.replace(/_/g, " ")}</Badge>
-                    </TableCell>
-                    <TableCell>
-                      <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); setLocation(`/sales/${s.id}`); }}>View</Button>
-                    </TableCell>
-                  </TableRow>
-                ))}
+                ) : (data?.data ?? []).map((s: any) => {
+                  const todayStr = new Date().toISOString().split("T")[0];
+                  const isOverdue = s.paymentType === "credit" && parseFloat(s.balanceDue) > 0 && s.dueDate && s.dueDate < todayStr;
+                  return (
+                    <TableRow key={s.id} className={`cursor-pointer ${isOverdue ? "bg-red-50/50 hover:bg-red-50 dark:bg-red-950/20" : "hover:bg-muted/50"}`} onClick={() => setLocation(`/sales/${s.id}`)} data-testid={`row-sale-${s.id}`}>
+                      <TableCell className="font-mono text-sm font-semibold">{s.invoiceNumber}</TableCell>
+                      <TableCell className="text-sm">{s.saleDate}</TableCell>
+                      <TableCell>{s.customerName ?? `Customer #${s.customerId}`}</TableCell>
+                      <TableCell className="capitalize text-sm">{s.paymentType}</TableCell>
+                      <TableCell className="text-sm">
+                        {s.dueDate ? (
+                          <span className={`inline-flex items-center gap-1 ${isOverdue ? "text-red-600 dark:text-red-400 font-semibold" : ""}`}>
+                            {s.dueDate}
+                            {isOverdue && <AlertTriangle className="h-3 w-3" />}
+                          </span>
+                        ) : "—"}
+                      </TableCell>
+                      <TableCell className="text-right text-sm">ETB {parseFloat(s.totalAmount).toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-sm">ETB {parseFloat(s.paidAmount).toLocaleString()}</TableCell>
+                      <TableCell className="text-right text-sm font-medium">{parseFloat(s.balanceDue) > 0 ? `ETB ${parseFloat(s.balanceDue).toLocaleString()}` : "—"}</TableCell>
+                      <TableCell>
+                        <Badge variant={s.status === "overdue" || isOverdue ? "destructive" : STATUS_BADGE[s.status] as any}>{isOverdue ? "overdue" : s.status.replace(/_/g, " ")}</Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Button variant="ghost" size="sm" onClick={e => { e.stopPropagation(); setLocation(`/sales/${s.id}`); }}>View</Button>
+                      </TableCell>
+                    </TableRow>
+                  )
+                })}
               </TableBody>
             </Table>
           )}
