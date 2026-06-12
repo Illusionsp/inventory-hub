@@ -30,10 +30,18 @@ router.post("/users", requireAuth, async (req, res): Promise<void> => {
     res.status(400).json({ error: "Missing required fields" });
     return;
   }
-  const passwordHash = await bcrypt.hash(password, 10);
-  const [user] = await db.insert(usersTable).values({ name, email, passwordHash, role, storeId: storeId ?? null }).returning();
-  const { passwordHash: _, ...safeUser } = user;
-  res.status(201).json(safeUser);
+  try {
+    const passwordHash = await bcrypt.hash(password, 10);
+    const [user] = await db.insert(usersTable).values({ name, email, passwordHash, role, storeId: storeId ?? null }).returning();
+    const { passwordHash: _, ...safeUser } = user;
+    res.status(201).json(safeUser);
+  } catch (err: any) {
+    if (err.code === '23505' || err.message?.includes("unique constraint")) {
+      res.status(400).json({ error: "A user with this email already exists" });
+    } else {
+      res.status(500).json({ error: "Database error while creating user" });
+    }
+  }
 });
 
 router.get("/users/:id", requireAuth, async (req, res): Promise<void> => {
@@ -57,10 +65,18 @@ router.patch("/users/:id", requireAuth, async (req, res): Promise<void> => {
   if (isActive !== undefined) updates.isActive = isActive;
   // permissions: null = revert to role defaults; [] or string[] = explicit overrides
   if (permissions !== undefined) updates.permissions = permissions;
-  const [user] = await db.update(usersTable).set(updates).where(eq(usersTable.id, id)).returning();
-  if (!user) { res.status(404).json({ error: "Not found" }); return; }
-  const { passwordHash: _, ...safeUser } = user;
-  res.json(safeUser);
+  try {
+    const [user] = await db.update(usersTable).set(updates).where(eq(usersTable.id, id)).returning();
+    if (!user) { res.status(404).json({ error: "Not found" }); return; }
+    const { passwordHash: _, ...safeUser } = user;
+    res.json(safeUser);
+  } catch (err: any) {
+    if (err.code === '23505' || err.message?.includes("unique constraint")) {
+      res.status(400).json({ error: "A user with this email already exists" });
+    } else {
+      res.status(500).json({ error: "Database error while updating user" });
+    }
+  }
 });
 
 router.patch("/users/:id/password", requireAuth, async (req, res): Promise<void> => {
