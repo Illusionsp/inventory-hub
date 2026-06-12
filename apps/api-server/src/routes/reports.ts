@@ -169,6 +169,9 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
         productId: saleItemsTable.productId,
         quantity: saleItemsTable.quantity,
         unit: saleItemsTable.unit,
+        unitPrice: saleItemsTable.unitPrice,
+        discount: saleItemsTable.discount,
+        totalPrice: saleItemsTable.totalPrice,
         productName: productsTable.name,
       })
       .from(saleItemsTable)
@@ -177,7 +180,7 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
     : [];
 
   const productAgg: Record<number, { name: string; quantity: number; unit: string }> = {};
-  const itemsBySale: Record<number, { name: string; quantity: number; unit: string }[]> = {};
+  const itemsBySale: Record<number, { name: string; quantity: number; unit: string; unitPrice: number; discount: number; totalPrice: number }[]> = {};
 
   for (const item of items) {
     const pid = item.productId;
@@ -195,6 +198,9 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
       name: item.productName || "Unknown Product",
       quantity: parseFloat(String(item.quantity || 0)),
       unit: item.unit,
+      unitPrice: parseFloat(String(item.unitPrice || 0)),
+      discount: parseFloat(String(item.discount || 0)),
+      totalPrice: parseFloat(String(item.totalPrice || 0)),
     });
   }
 

@@ -119,6 +119,9 @@ type SalesReportData = {
       name: string;
       quantity: number;
       unit: string;
+      unitPrice?: number;
+      discount?: number;
+      totalPrice?: number;
     }[];
   }[];
 };
@@ -161,26 +164,73 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
 
 
   const invoiceRows = data.invoices.map(inv => {
-    return `
-      <tr>
-        <td class="mono">${inv.invoiceNumber}</td>
-        <td class="mono dim">${inv.fsNumber ?? "—"}</td>
-        <td>${inv.saleDate}</td>
-        <td>${inv.customerName ?? "—"}</td>
-        <td class="cap">${inv.paymentType}</td>
-        <td>${inv.paymentMethod ? (PM_LABELS[inv.paymentMethod] ?? inv.paymentMethod) : "—"}</td>
-        <td>${inv.bankName ?? "—"}</td>
-        <td class="cap">${STS_LABELS[inv.status] ?? inv.status}</td>
-        <td class="num">${n(inv.subtotal)}</td>
-        <td class="num${inv.vatAmount > 0 ? " amber" : ""}">${inv.vatAmount > 0 ? n(inv.vatAmount) : "—"}</td>
-        <td class="num${inv.withholdingAmount > 0 ? " red" : ""}">${inv.withholdingAmount > 0 ? n(inv.withholdingAmount) : "—"}</td>
-        <td class="num bold">${n(inv.totalAmount)}</td>
-        <td>
-          <div style="font-size: 9px; line-height: 1.1; color: #555;">
-            ${(inv.items || []).map(it => `<div>● ${n3(it.quantity)} ${it.unit} ${it.name}</div>`).join("")}
-          </div>
-        </td>
-      </tr>`;
+    if (!inv.items || inv.items.length === 0) {
+      return `
+        <tr>
+          <td class="mono">${inv.invoiceNumber}</td>
+          <td class="mono dim">${inv.fsNumber ?? "—"}</td>
+          <td>${inv.saleDate}</td>
+          <td>${inv.customerName ?? "—"}</td>
+          <td class="dim">—</td>
+          <td class="dim">—</td>
+          <td class="dim">—</td>
+          <td class="dim">—</td>
+          <td class="dim">—</td>
+          <td class="dim">—</td>
+          <td class="cap">${inv.paymentType}</td>
+          <td>${inv.paymentMethod ? (PM_LABELS[inv.paymentMethod] ?? inv.paymentMethod) : "—"}</td>
+          <td class="cap">${STS_LABELS[inv.status] ?? inv.status}</td>
+          <td class="num">${n(inv.subtotal)}</td>
+          <td class="num${inv.vatAmount > 0 ? " amber" : ""}">${inv.vatAmount > 0 ? n(inv.vatAmount) : "—"}</td>
+          <td class="num bold">${n(inv.totalAmount)}</td>
+          <td class="num">${inv.balanceDue > 0 ? n(inv.balanceDue) : "—"}</td>
+        </tr>`;
+    }
+
+    return inv.items.map((it, idx) => {
+      const isFirst = idx === 0;
+      const pName = it.name || "—";
+      const qty = it.quantity != null ? n3(it.quantity) : "—";
+      const unit = it.unit || "—";
+      const uPrice = it.unitPrice != null ? n(it.unitPrice) : "—";
+      const disc = it.discount && it.discount > 0 ? n(it.discount) : "—";
+      const lTotal = it.totalPrice != null ? n(it.totalPrice) : "—";
+
+      if (isFirst) {
+        return `
+        <tr>
+          <td class="mono">${inv.invoiceNumber}</td>
+          <td class="mono dim">${inv.fsNumber ?? "—"}</td>
+          <td>${inv.saleDate}</td>
+          <td>${inv.customerName ?? "—"}</td>
+          <td class="bold">${pName}</td>
+          <td class="num bold">${qty}</td>
+          <td class="dim">${unit}</td>
+          <td class="num">${uPrice}</td>
+          <td class="num dim">${disc}</td>
+          <td class="num bold teal">${lTotal}</td>
+          <td class="cap">${inv.paymentType}</td>
+          <td>${inv.paymentMethod ? (PM_LABELS[inv.paymentMethod] ?? inv.paymentMethod) : "—"}</td>
+          <td class="cap">${STS_LABELS[inv.status] ?? inv.status}</td>
+          <td class="num">${n(inv.subtotal)}</td>
+          <td class="num${inv.vatAmount > 0 ? " amber" : ""}">${inv.vatAmount > 0 ? n(inv.vatAmount) : "—"}</td>
+          <td class="num bold">${n(inv.totalAmount)}</td>
+          <td class="num">${inv.balanceDue > 0 ? n(inv.balanceDue) : "—"}</td>
+        </tr>`;
+      } else {
+        return `
+        <tr>
+          <td></td><td></td><td></td><td></td>
+          <td class="bold line-pt">${pName}</td>
+          <td class="num bold line-pt">${qty}</td>
+          <td class="dim line-pt">${unit}</td>
+          <td class="num line-pt">${uPrice}</td>
+          <td class="num dim line-pt">${disc}</td>
+          <td class="num bold teal line-pt">${lTotal}</td>
+          <td></td><td></td><td></td><td></td><td></td><td></td><td></td>
+        </tr>`;
+      }
+    }).join("");
   }).join("");
 
   const productRows = (data?.byProduct || []).map(p => `
@@ -217,6 +267,7 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
   .red { color: #dc2626; }
   .teal { color: #0f766e; }
   .purple { color: #7c3aed; }
+  .line-pt { border-top: 1px dashed #e5e7eb; padding-top: 5px; }
   .total-row td { background: #f9fafb; font-weight: 700; border-top: 2px solid #ccc; }
   .footer { margin-top: 16px; font-size: 10px; color: #aaa; border-top: 1px solid #eee; padding-top: 8px; }
   @media print {
@@ -250,27 +301,41 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
 </table>
 
 <h2>Invoice Details (${data.invoices.length} invoice${data.invoices.length !== 1 ? "s" : ""})</h2>
-<table>
-  <thead>
-    <tr>
-      <th>Invoice #</th><th>FS #</th><th>Date</th><th>Buyer</th>
-      <th>Pay Type</th><th>Method</th><th>Bank</th><th>Status</th>
-      <th class="num">Subtotal</th><th class="num">VAT</th><th class="num">WHT</th>
-      <th class="num">Total</th><th>Items Sold</th>
-    </tr>
-  </thead>
-  <tbody>${invoiceRows}</tbody>
-  <tfoot>
-    <tr class="total-row">
-      <td colspan="8">TOTAL (${data.invoices.length} invoice${data.invoices.length !== 1 ? "s" : ""})</td>
-      <td class="num">${n(data.invoices.reduce((a, i) => a + i.subtotal, 0))}</td>
-      <td class="num amber">${n(data.invoices.reduce((a, i) => a + i.vatAmount, 0))}</td>
-      <td class="num red">${n(data.invoices.reduce((a, i) => a + i.withholdingAmount, 0))}</td>
-      <td class="num">${n(data.invoices.reduce((a, i) => a + i.totalAmount, 0))}</td>
-      <td></td>
-    </tr>
-  </tfoot>
-</table>
+<div style="overflow-x: auto;">
+  <table style="width:100%;">
+    <thead>
+      <tr>
+        <th>Invoice #</th>
+        <th>FS #</th>
+        <th>Date</th>
+        <th>Buyer</th>
+        <th>Product</th>
+        <th class="num">Qty</th>
+        <th>Unit</th>
+        <th class="num">Unit Price</th>
+        <th class="num">Discount</th>
+        <th class="num">Line Total</th>
+        <th>Pay Type</th>
+        <th>Method</th>
+        <th>Status</th>
+        <th class="num">Subtotal</th>
+        <th class="num">VAT</th>
+        <th class="num">Total</th>
+        <th class="num">Balance</th>
+      </tr>
+    </thead>
+    <tbody>
+      ${invoiceRows}
+      <tr class="total-row">
+        <td colspan="13">TOTAL (${data.invoices.length} invoices)</td>
+        <td class="num">${n(data.summary.subtotalSum)}</td>
+        <td class="num">${n(data.summary.vatCollected)}</td>
+        <td class="num">${n(data.summary.totalRevenue)}</td>
+        <td class="num red">${n(data.invoices.reduce((s, i) => s + i.balanceDue, 0))}</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
 
 
 <div class="footer">Generated by RAFLOS Softwares &bull; ${now}</div>
