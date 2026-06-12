@@ -57,8 +57,15 @@ export default function SalesNew() {
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!customerId || !saleDate || !paymentType || !storeId || items.length === 0) {
-      toast({ title: "Please fill all required fields, including dispatch store", variant: "destructive" });
+    const validItems = items.filter(i => i.productId && i.quantity && i.unitPrice).map(i => {
+      const qty = parseFloat(i.quantity);
+      const price = parseFloat(i.unitPrice);
+      const disc = parseFloat(i.discount) || 0;
+      return { productId: parseInt(i.productId, 10), quantity: qty, unit: i.unit, unitPrice: price, discount: disc, totalPrice: qty * price - disc };
+    });
+
+    if (!customerId || !saleDate || !paymentType || !storeId || validItems.length === 0) {
+      toast({ title: "Please fill all required fields and ensure at least one valid line item with quantity/price", variant: "destructive" });
       return;
     }
     if (paymentType === "credit" && !dueDate) {
@@ -78,12 +85,7 @@ export default function SalesNew() {
         dueDate: paymentType === "credit" ? dueDate || undefined : undefined,
         storeId: storeId && storeId !== "none" ? parseInt(storeId, 10) : undefined,
         remarks: remarks || undefined,
-        items: items.filter(i => i.productId && i.quantity && i.unitPrice).map(i => {
-          const qty = parseFloat(i.quantity);
-          const price = parseFloat(i.unitPrice);
-          const disc = parseFloat(i.discount) || 0;
-          return { productId: parseInt(i.productId, 10), quantity: qty, unit: i.unit, unitPrice: price, discount: disc, totalPrice: qty * price - disc };
-        }),
+        items: validItems,
       } as any,
     }, {
       onSuccess: (res: any) => {
