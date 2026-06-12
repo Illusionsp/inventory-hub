@@ -50,6 +50,7 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
     paymentType,
     paymentMethod,
     status,
+    fsNumber,
   } = req.query as Record<string, string>;
 
   const today = new Date();
@@ -101,6 +102,7 @@ router.get("/reports/sales", requireAuth, async (req, res): Promise<void> => {
     if (paymentType && r.paymentType !== paymentType) return false;
     if (paymentMethod && r.paymentMethod !== paymentMethod) return false;
     if (status && r.status !== status) return false;
+    if (fsNumber && (!r.fsNumber || !r.fsNumber.toLowerCase().includes(fsNumber.toLowerCase()))) return false;
     return true;
   }).sort((a, b) => {
     // Sort descending by date

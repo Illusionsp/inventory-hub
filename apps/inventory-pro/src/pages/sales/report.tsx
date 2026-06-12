@@ -130,6 +130,7 @@ type FilterState = {
   paymentType: string;
   paymentMethod: string;
   status: string;
+  fsNumber: string;
 };
 
 const PM_LABELS: Record<string, string> = {
@@ -155,6 +156,7 @@ function generatePrintHtml(data: SalesReportData, applied: FilterState): string 
     applied.paymentType && `Payment Type: ${applied.paymentType}`,
     applied.paymentMethod && `Method: ${PM_LABELS[applied.paymentMethod] ?? applied.paymentMethod}`,
     applied.status && `Status: ${STS_LABELS[applied.status] ?? applied.status}`,
+    applied.fsNumber && `FS Number: ${applied.fsNumber}`,
   ].filter(Boolean).join(" | ");
 
 
@@ -309,6 +311,7 @@ export default function SalesReport() {
     paymentType: "",
     paymentMethod: "",
     status: "",
+    fsNumber: "",
   };
 
   const [filters, setFilters] = useState<FilterState>(emptyFilters);
@@ -367,7 +370,7 @@ export default function SalesReport() {
   const series = data?.series ?? [];
   const invoices = data?.invoices ?? [];
 
-  const hasActiveFilters = applied.paymentType || applied.paymentMethod || applied.status;
+  const hasActiveFilters = applied.paymentType || applied.paymentMethod || applied.status || applied.fsNumber;
 
   const CustomTooltip = ({ active, payload, label }: any) => {
     if (!active || !payload?.length) return null;
@@ -447,6 +450,15 @@ export default function SalesReport() {
 
           {/* Row 2: detail filters */}
           <div className="flex flex-wrap gap-3 items-end">
+            <div className="space-y-1.5">
+              <p className="text-xs font-medium text-muted-foreground">FS / Machine Number</p>
+              <Input
+                placeholder="Search..."
+                value={filters.fsNumber}
+                onChange={(e) => set("fsNumber", e.target.value)}
+                className="w-36 h-9"
+              />
+            </div>
             <div className="space-y-1.5">
               <p className="text-xs font-medium text-muted-foreground">Payment Type</p>
               <Select value={filters.paymentType || "all"} onValueChange={(v) => set("paymentType", v === "all" ? "" : v)}>
