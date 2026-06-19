@@ -109,7 +109,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         "can_view_request_status", "can_view_reports",
       ],
       production_manager: ["can_create_batch_production", "can_approve_production", "can_view_request_status", "can_view_reports"],
-      finance_officer: ["can_view_reports", "can_view_request_status"],
+      finance_officer: ["can_view_reports", "can_view_request_status", "can_manage_finance"],
       sales_officer: ["can_view_reports"],
     };
 

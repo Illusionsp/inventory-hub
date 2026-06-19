@@ -56,6 +56,8 @@ const PERMISSION_LIST = [
   { key: "can_approve_store_requests", label: "Approve Store Requests", description: "Can approve or reject store-to-store transfer requests" },
   { key: "can_approve_dispatch", label: "Approve Dispatch", description: "Can dispatch items to fulfil a store request or production batch" },
   { key: "can_approve_production", label: "Approve Production Batches", description: "Can complete a production batch (record actual output & wastage)" },
+  // ── Financial permissions ──────────────────────────────
+  { key: "can_manage_finance", label: "Manage Finance & Payments", description: "Can execute outgoing payments and manage corporate finance" },
 ] as const;
 
 const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
@@ -71,7 +73,7 @@ const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
     "can_view_request_status", "can_view_reports",
   ],
   production_manager: ["can_create_batch_production", "can_approve_production", "can_view_request_status", "can_view_reports"],
-  finance_officer: ["can_view_reports", "can_view_request_status"],
+  finance_officer: ["can_view_reports", "can_view_request_status", "can_manage_finance"],
   sales_officer: ["can_view_reports"],
 };
 

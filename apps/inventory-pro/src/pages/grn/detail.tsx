@@ -46,12 +46,11 @@ function PrintableGrn({ grn }: { grn: any }) {
         </div>
         <div className="text-right">
           <div className="text-xl font-bold text-gray-800">{grn.grnNumber}</div>
-          <div className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-semibold uppercase ${
-            grn.status === "paid" ? "bg-green-100 text-green-800" :
-            grn.status === "approved" ? "bg-blue-100 text-blue-800" :
-            grn.status === "rejected" ? "bg-red-100 text-red-800" :
-            "bg-gray-100 text-gray-700"
-          }`}>
+          <div className={`inline-block mt-1 px-2 py-0.5 rounded text-xs font-semibold uppercase ${grn.status === "paid" ? "bg-green-100 text-green-800" :
+              grn.status === "approved" ? "bg-blue-100 text-blue-800" :
+                grn.status === "rejected" ? "bg-red-100 text-red-800" :
+                  "bg-gray-100 text-gray-700"
+            }`}>
             {STATUS_LABELS[grn.status] || grn.status}
           </div>
         </div>
@@ -399,7 +398,7 @@ export default function GrnDetail({ id }: { id: string }) {
               </Button>
             </>
           )}
-          {grn.status === "approved" && (
+          {grn.status === "approved" && hasPermission("can_manage_finance") && (
             <Button size="sm" onClick={handlePay} disabled={markPaid.isPending}>
               <DollarSign className="h-4 w-4 mr-2" /> Mark as Paid
             </Button>
