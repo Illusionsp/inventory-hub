@@ -8,6 +8,7 @@ export const salesTable = pgTable("sales", {
   saleDate: text("sale_date").notNull(),
   customerId: integer("customer_id").notNull(),
   fsNumber: text("fs_number"),
+  machineNumber: text("machine_number"),
   paymentType: text("payment_type").notNull(), // cash | credit
   paymentMethod: text("payment_method"), // cash | bank_transfer | cheque
   bankName: text("bank_name"),

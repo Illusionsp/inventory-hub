@@ -92,7 +92,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   function hasPermission(permission: string): boolean {
     if (!user) return false;
     if (user.role === "super_admin") return true;
-    return (user.permissions ?? []).includes(permission);
+
+    if (user.permissions && Array.isArray(user.permissions)) {
+      return user.permissions.includes(permission);
+    }
+
+    const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {
+      store_manager: [
+        "can_create_store_requests", "can_receive_items", "can_view_request_status",
+        "can_manage_inventory", "can_view_reports", "can_create_batch_production",
+        "can_approve_store_requests", "can_approve_dispatch", "can_approve_grn",
+      ],
+      approver: [
+        "can_approve_grn", "can_approve_store_requests",
+        "can_approve_dispatch", "can_approve_production",
+        "can_view_request_status", "can_view_reports",
+      ],
+      production_manager: ["can_create_batch_production", "can_approve_production", "can_view_request_status", "can_view_reports"],
+      finance_officer: ["can_view_reports", "can_view_request_status"],
+      sales_officer: ["can_view_reports"],
+    };
+
+    const roleDefaults = ROLE_DEFAULT_PERMISSIONS[user.role] ?? [];
+    return roleDefaults.includes(permission);
   }
 
   return (

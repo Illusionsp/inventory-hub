@@ -18,11 +18,13 @@ export default function SalesList() {
   const [, setLocation] = useLocation();
   const [status, setStatus] = useState("all");
   const [search, setSearch] = useState("");
+  const [machineNumber, setMachineNumber] = useState("");
   const [page, setPage] = useState(1);
 
   const { data, isLoading } = useListSales({
     status: status !== "all" ? status as ListSalesStatus : undefined,
     search: search || undefined,
+    machineNumber: machineNumber || undefined,
     page,
   });
 
@@ -42,6 +44,9 @@ export default function SalesList() {
         <div className="relative">
           <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
           <Input className="pl-9 w-56" placeholder="Search invoices..." value={search} onChange={e => { setSearch(e.target.value); setPage(1); }} data-testid="input-search" />
+        </div>
+        <div className="relative">
+          <Input className="w-40" placeholder="Machine No..." value={machineNumber} onChange={e => { setMachineNumber(e.target.value); setPage(1); }} data-testid="input-machine-number" />
         </div>
         <Select value={status} onValueChange={v => { setStatus(v); setPage(1); }}>
           <SelectTrigger className="w-44" data-testid="select-status">
@@ -68,6 +73,7 @@ export default function SalesList() {
                   <TableHead>Invoice No.</TableHead>
                   <TableHead>Date</TableHead>
                   <TableHead>Customer</TableHead>
+                  <TableHead>Machine No.</TableHead>
                   <TableHead>Payment</TableHead>
                   <TableHead>Due Date</TableHead>
                   <TableHead className="text-right">Total</TableHead>
@@ -93,6 +99,7 @@ export default function SalesList() {
                       <TableCell className="font-mono text-sm font-semibold">{s.invoiceNumber}</TableCell>
                       <TableCell className="text-sm">{s.saleDate}</TableCell>
                       <TableCell>{s.customerName ?? `Customer #${s.customerId}`}</TableCell>
+                      <TableCell className="text-sm text-muted-foreground">{s.machineNumber || "—"}</TableCell>
                       <TableCell className="capitalize text-sm">{s.paymentType}</TableCell>
                       <TableCell className="text-sm">
                         {s.dueDate ? (

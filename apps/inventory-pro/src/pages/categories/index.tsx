@@ -40,10 +40,11 @@ import { useToast } from "@/hooks/use-toast";
 
 interface CategoryForm {
   name: string;
+  code: string;
   description: string;
 }
 
-const emptyForm = (): CategoryForm => ({ name: "", description: "" });
+const emptyForm = (): CategoryForm => ({ name: "", code: "", description: "" });
 
 export default function CategoriesList() {
   const [formOpen, setFormOpen] = useState(false);
@@ -78,6 +79,7 @@ export default function CategoriesList() {
       {
         data: {
           name: form.name.trim(),
+          code: form.code.trim() || null,
           description: form.description.trim() || null,
         },
       },
@@ -135,6 +137,7 @@ export default function CategoriesList() {
           <TableHeader>
             <TableRow className="bg-muted/50">
               <TableHead className="w-[80px]">ID</TableHead>
+              <TableHead>Code</TableHead>
               <TableHead>Name</TableHead>
               <TableHead>Description</TableHead>
               <TableHead className="text-right w-[80px]">Delete</TableHead>
@@ -161,6 +164,9 @@ export default function CategoriesList() {
                 <TableRow key={category.id} className="hover:bg-muted/40">
                   <TableCell className="font-mono text-muted-foreground text-sm">
                     {category.id}
+                  </TableCell>
+                  <TableCell className="font-mono text-muted-foreground">
+                    {category.code || "—"}
                   </TableCell>
                   <TableCell className="font-medium">{category.name}</TableCell>
                   <TableCell className="text-muted-foreground">
@@ -199,15 +205,27 @@ export default function CategoriesList() {
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
-            <div className="space-y-1.5">
-              <Label htmlFor="cat-name">Name *</Label>
-              <Input
-                id="cat-name"
-                value={form.name}
-                onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
-                placeholder="e.g. Raw Chemicals"
-                onKeyDown={(e) => e.key === "Enter" && handleSave()}
-              />
+            <div className="grid grid-cols-2 gap-4">
+              <div className="space-y-1.5">
+                <Label htmlFor="cat-name">Name *</Label>
+                <Input
+                  id="cat-name"
+                  value={form.name}
+                  onChange={(e) => setForm((p) => ({ ...p, name: e.target.value }))}
+                  placeholder="e.g. Raw Chemicals"
+                  onKeyDown={(e) => e.key === "Enter" && handleSave()}
+                />
+              </div>
+              <div className="space-y-1.5">
+                <Label htmlFor="cat-code">Code</Label>
+                <Input
+                  id="cat-code"
+                  value={form.code}
+                  onChange={(e) => setForm((p) => ({ ...p, code: e.target.value }))}
+                  placeholder="e.g. RC"
+                  onKeyDown={(e) => e.key === "Enter" && handleSave()}
+                />
+              </div>
             </div>
             <div className="space-y-1.5">
               <Label htmlFor="cat-desc">Description</Label>

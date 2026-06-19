@@ -80,6 +80,18 @@ export default function ProductionDetail({ id }: { id: string }) {
     if (calculated > 0) setPackagesProduced(String(calculated));
   }, [actualOutputQty, packageSize, packageSizeUnit, enablePackaging, outputs]);
 
+  // Auto-calculate wastage as difference between sum of input materials and actual output
+  useEffect(() => {
+    const actual = parseFloat(actualOutputQty);
+    if (!isNaN(actual) && batch?.inputMaterials) {
+      const sumInput = batch.inputMaterials.reduce((acc: number, m: any) => acc + parseFloat(m.quantity || "0"), 0);
+      const waste = Math.max(0, sumInput - actual);
+      // Only auto-update if wastage is fundamentally different to avoid overwriting user fine-tuning unnecessarily,
+      // but if the user hasn't explicitly fine-tuned it, keep updating it based on the formula.
+      setWastageQty(String(waste));
+    }
+  }, [actualOutputQty, batch?.inputMaterials]);
+
   const addOutput = () => setOutputs(prev => [...prev, { productId: "", quantity: "", unit: "KG" }]);
   const removeOutput = (i: number) => setOutputs(prev => prev.filter((_, idx) => idx !== i));
   const updateOutput = (i: number, field: keyof OutputProduct, value: string) =>
@@ -248,9 +260,9 @@ export default function ProductionDetail({ id }: { id: string }) {
                 </div>
               </div>
               <div className="space-y-1.5">
-                <Label>Wastage Qty *</Label>
+                <Label>Wastage Qty (Auto-calculated)</Label>
                 <div className="flex gap-2 items-center">
-                  <Input type="number" min="0" step="0.001" value={wastageQty} onChange={e => setWastageQty(e.target.value)} placeholder="0.000" data-testid="input-wastage-qty" className="flex-1" />
+                  <Input type="number" value={wastageQty} readOnly disabled className="flex-1 bg-muted font-medium text-muted-foreground" data-testid="input-wastage-qty" />
                   <span className="text-sm font-medium text-muted-foreground bg-muted px-3 py-2 rounded-md border border-input min-w-[56px] text-center">{batch.outputUnit}</span>
                 </div>
               </div>

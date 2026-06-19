@@ -1,5 +1,5 @@
 import { Router } from "express";
-import { eq, and, SQL } from "drizzle-orm";
+import { eq, and, SQL, desc } from "drizzle-orm";
 import { db, auditLogsTable, usersTable } from "@workspace/db";
 import { requireAuth } from "../lib/auth";
 
@@ -22,7 +22,7 @@ router.get("/audit-logs", requireAuth, async (req, res): Promise<void> => {
     .from(auditLogsTable)
     .leftJoin(usersTable, eq(auditLogsTable.userId, usersTable.id))
     .where(where)
-    .orderBy(auditLogsTable.createdAt)
+    .orderBy(desc(auditLogsTable.createdAt))
     .limit(limitNum)
     .offset(offset);
 

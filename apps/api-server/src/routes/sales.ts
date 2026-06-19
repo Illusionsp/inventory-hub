@@ -36,7 +36,7 @@ async function nextInvoiceNumber(): Promise<string> {
 }
 
 router.get("/sales", requireAuth, async (req, res): Promise<void> => {
-  const { status, customerId, search, from, to, page = "1", limit = "20" } = req.query as Record<string, string>;
+  const { status, customerId, search, machineNumber, from, to, page = "1", limit = "20" } = req.query as Record<string, string>;
   const pageNum = parseInt(page, 10);
   const limitNum = parseInt(limit, 10);
   const offset = (pageNum - 1) * limitNum;
@@ -44,6 +44,7 @@ router.get("/sales", requireAuth, async (req, res): Promise<void> => {
   const conditions: SQL[] = [];
   if (status) conditions.push(eq(salesTable.status, status));
   if (customerId) conditions.push(eq(salesTable.customerId, parseInt(customerId, 10)));
+  if (machineNumber) conditions.push(ilike(salesTable.machineNumber, `%${machineNumber}%`));
   if (search) conditions.push(ilike(salesTable.invoiceNumber, `%${search}%`));
 
   const where = conditions.length > 0 ? and(...conditions) : undefined;
@@ -57,6 +58,7 @@ router.get("/sales", requireAuth, async (req, res): Promise<void> => {
       customerId: salesTable.customerId,
       customerName: customersTable.name,
       fsNumber: salesTable.fsNumber,
+      machineNumber: salesTable.machineNumber,
       paymentType: salesTable.paymentType,
       paymentMethod: salesTable.paymentMethod,
       status: salesTable.status,
@@ -101,7 +103,7 @@ router.get("/sales", requireAuth, async (req, res): Promise<void> => {
 });
 
 router.post("/sales", requireAuth, async (req, res): Promise<void> => {
-  const { customerId, saleDate, fsNumber, paymentType, paymentMethod, bankName, vatApplicable, dueDate, salespersonId, storeId, remarks, items } = req.body;
+  const { customerId, saleDate, fsNumber, machineNumber, paymentType, paymentMethod, bankName, vatApplicable, dueDate, salespersonId, storeId, remarks, items } = req.body;
   if (!customerId || !saleDate || !paymentType || !items?.length) {
     res.status(400).json({ error: "Missing required fields" });
     return;
@@ -130,7 +132,7 @@ router.post("/sales", requireAuth, async (req, res): Promise<void> => {
   const invoiceNumber = await nextInvoiceNumber();
 
   const [sale] = await db.insert(salesTable).values({
-    invoiceNumber, saleDate, customerId, fsNumber: fsNumber ?? null, paymentType, paymentMethod: paymentMethod ?? null,
+    invoiceNumber, saleDate, customerId, fsNumber: fsNumber ?? null, machineNumber: machineNumber ?? null, paymentType, paymentMethod: paymentMethod ?? null,
     bankName: bankName ?? null, vatApplicable: vatApplicable ?? false, vatAmount: vatAmount.toString(),
     withholdingAmount: "0", discountAmount: "0", subtotal: subtotal.toString(), totalAmount: totalAmount.toString(),
     paidAmount: paidAmount.toString(), balanceDue: balanceDue.toString(), status, dueDate: dueDate ?? null,
@@ -189,6 +191,7 @@ router.get("/sales/:id", requireAuth, async (req, res): Promise<void> => {
       customerId: salesTable.customerId,
       customerName: customersTable.name,
       fsNumber: salesTable.fsNumber,
+      machineNumber: salesTable.machineNumber,
       paymentType: salesTable.paymentType,
       paymentMethod: salesTable.paymentMethod,
       status: salesTable.status,

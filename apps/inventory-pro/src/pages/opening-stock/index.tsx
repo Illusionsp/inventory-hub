@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { useListOpeningStock, useCreateOpeningStock, useListStores } from "@workspace/api-client-react";
+import { useListOpeningStock, useCreateOpeningStock, useListStores, useListProducts, useListCategories } from "@workspace/api-client-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -29,6 +29,8 @@ const STOCK_TYPE_BADGE: Record<string, string> = {
 
 const DEFAULT_FORM = {
   storeId: "",
+  categoryId: "all",
+  productId: "",
   itemName: "",
   quantity: "",
   unit: "KG",
@@ -46,10 +48,27 @@ export default function OpeningStockPage() {
   const [form, setForm] = useState({ ...DEFAULT_FORM });
 
   const { data: stores } = useListStores();
+  const { data: categories } = useListCategories();
+  const { data: products } = useListProducts({ limit: 1000 });
   const { data, isLoading } = useListOpeningStock(
     filterStoreId !== "all" ? { storeId: parseInt(filterStoreId, 10) } : {},
   );
   const createEntry = useCreateOpeningStock();
+
+  const filteredProducts = (products?.data ?? []).filter(p =>
+    form.categoryId === "all" ? true : p.categoryId === parseInt(form.categoryId, 10)
+  );
+
+  const handleProductSelect = (productId: string) => {
+    const selectedProd = (products?.data ?? []).find(p => String(p.id) === productId);
+    setForm(f => ({
+      ...f,
+      productId,
+      itemName: selectedProd ? selectedProd.name : "",
+      unit: selectedProd ? selectedProd.unit : f.unit,
+      stockType: selectedProd ? selectedProd.type : f.stockType,
+    }));
+  };
 
   const set = (field: string, value: string) => setForm(f => ({ ...f, [field]: value }));
 
@@ -60,6 +79,7 @@ export default function OpeningStockPage() {
     createEntry.mutate({
       data: {
         storeId: parseInt(form.storeId, 10),
+        productId: form.productId ? parseInt(form.productId, 10) : undefined,
         itemName: form.itemName.trim(),
         quantity: parseFloat(form.quantity),
         unit: form.unit,
@@ -137,6 +157,7 @@ export default function OpeningStockPage() {
                 <TableRow>
                   <TableHead>#</TableHead>
                   <TableHead>Store</TableHead>
+                  <TableHead>Category</TableHead>
                   <TableHead>Item Name</TableHead>
                   <TableHead>Stock Type</TableHead>
                   <TableHead className="text-right">Quantity</TableHead>
@@ -157,6 +178,9 @@ export default function OpeningStockPage() {
                   <TableRow key={row.id} data-testid={`row-os-${row.id}`}>
                     <TableCell className="text-muted-foreground text-sm">{row.id}</TableCell>
                     <TableCell className="font-medium">{storeName(row.storeId)}</TableCell>
+                    <TableCell className="text-sm text-muted-foreground">
+                      {(categories ?? []).find((c: any) => String(c.id) === String((products?.data ?? []).find((p: any) => String(p.id) === String(row.productId))?.categoryId))?.name ?? "—"}
+                    </TableCell>
                     <TableCell className="font-semibold">{row.itemName}</TableCell>
                     <TableCell>
                       <Badge variant={STOCK_TYPE_BADGE[row.stockType] as any}>
@@ -194,15 +218,33 @@ export default function OpeningStockPage() {
               </Select>
             </div>
 
-            {/* Item name */}
+            {/* Category Filter */}
             <div className="space-y-1.5">
-              <Label>Item / Product Name *</Label>
-              <Input
-                value={form.itemName}
-                onChange={e => set("itemName", e.target.value)}
-                placeholder="e.g. Raw Sugar, Refined Honey 250g bottle"
-                data-testid="input-item-name"
-              />
+              <Label>Filter by Category</Label>
+              <Select value={form.categoryId} onValueChange={v => set("categoryId", v)}>
+                <SelectTrigger><SelectValue placeholder="All Categories" /></SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="all">All Categories</SelectItem>
+                  {(categories ?? []).map(c => (
+                    <SelectItem key={c.id} value={String(c.id)}>
+                      {c.code ? `[${c.code}] ${c.name}` : c.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Product / Item */}
+            <div className="space-y-1.5">
+              <Label>Product *</Label>
+              <Select value={form.productId} onValueChange={handleProductSelect}>
+                <SelectTrigger data-testid="select-product"><SelectValue placeholder="Select product" /></SelectTrigger>
+                <SelectContent>
+                  {filteredProducts.map(p => (
+                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
 
             {/* Stock type */}

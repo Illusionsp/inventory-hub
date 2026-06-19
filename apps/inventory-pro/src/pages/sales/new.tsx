@@ -30,6 +30,7 @@ export default function SalesNew() {
   const [dueDate, setDueDate] = useState("");
   const [storeId, setStoreId] = useState("");
   const [fsNumber, setFsNumber] = useState("");
+  const [machineNumber, setMachineNumber] = useState("");
   const [remarks, setRemarks] = useState("");
   const [items, setItems] = useState<SaleItem[]>([{ productId: "", quantity: "", unit: "PCS", unitPrice: "", discount: "0" }]);
 
@@ -78,6 +79,7 @@ export default function SalesNew() {
         customerId: parseInt(customerId, 10),
         saleDate,
         fsNumber: fsNumber || undefined,
+        machineNumber: machineNumber || undefined,
         paymentType,
         paymentMethod: paymentType === "cash" ? paymentMethod : undefined,
         bankName: (paymentMethod === "bank_transfer" || paymentMethod === "cheque") ? bankName : undefined,
@@ -133,6 +135,10 @@ export default function SalesNew() {
             <div className="space-y-1.5">
               <Label>FS Number</Label>
               <Input value={fsNumber} onChange={e => setFsNumber(e.target.value)} placeholder="Fiscal number" />
+            </div>
+            <div className="space-y-1.5">
+              <Label>Machine Number</Label>
+              <Input value={machineNumber} onChange={e => setMachineNumber(e.target.value)} placeholder="Machine number" data-testid="input-machine-number" />
             </div>
             <div className="space-y-1.5">
               <Label>Payment Type *</Label>

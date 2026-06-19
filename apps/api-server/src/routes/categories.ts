@@ -11,9 +11,20 @@ router.get("/categories", requireAuth, async (_req, res): Promise<void> => {
 });
 
 router.post("/categories", requireAuth, async (req, res): Promise<void> => {
-  const { name, description } = req.body;
+  const { name, code, description } = req.body;
   if (!name) { res.status(400).json({ error: "Name required" }); return; }
-  const [cat] = await db.insert(categoriesTable).values({ name, description: description ?? null }).returning();
+
+  // Optional: check uniqueness manually to return a nice 409 error instead of a 500
+  if (code) {
+    const existing = await db.select({ id: categoriesTable.id }).from(categoriesTable).where(eq(categoriesTable.code, code)).limit(1);
+    if (existing.length > 0) { res.status(409).json({ error: "Category code already in use" }); return; }
+  }
+
+  const [cat] = await db.insert(categoriesTable).values({
+    name,
+    code: code ?? null,
+    description: description ?? null
+  }).returning();
   res.status(201).json(cat);
 });
 

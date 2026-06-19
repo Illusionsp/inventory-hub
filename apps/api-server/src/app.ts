@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import connectPgSimple from "connect-pg-simple";
 import router from "./routes";
 import { logger } from "./lib/logger";
+import { auditLogger } from "./lib/audit-logger";
 
 declare module "express-session" {
   interface SessionData {
@@ -62,6 +63,6 @@ app.use(
   }),
 );
 
-app.use("/api", router);
+app.use("/api", auditLogger, router);
 
 export default app;

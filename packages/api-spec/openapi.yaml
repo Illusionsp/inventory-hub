@@ -1233,6 +1233,10 @@ paths:
           in: query
           schema:
             type: string
+        - name: machineNumber
+          in: query
+          schema:
+            type: string
         - name: page
           in: query
           schema:
@@ -1786,6 +1790,8 @@ components:
           type: string
         description:
           type: ["string", "null"]
+        code:
+          type: ["string", "null"]
 
     CategoryInput:
       type: object
@@ -1794,6 +1800,8 @@ components:
         name:
           type: string
         description:
+          type: ["string", "null"]
+        code:
           type: ["string", "null"]
 
     # PRODUCT
@@ -2512,6 +2520,8 @@ components:
           type: ["string", "null"]
         fsNumber:
           type: ["string", "null"]
+        machineNumber:
+          type: ["string", "null"]
         paymentType:
           type: string
           enum: [cash, credit]
@@ -2577,6 +2587,8 @@ components:
         saleDate:
           type: string
         fsNumber:
+          type: ["string", "null"]
+        machineNumber:
           type: ["string", "null"]
         paymentType:
           type: string
@@ -2952,6 +2964,8 @@ components:
       properties:
         storeId:
           type: integer
+        productId:
+          type: ["integer", "null"]
         itemName:
           type: string
         quantity:
