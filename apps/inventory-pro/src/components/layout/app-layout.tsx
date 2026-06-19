@@ -84,7 +84,7 @@ const navGroups: NavGroup[] = [
     items: [
       { title: "Sales Invoices", icon: ShoppingCart, url: "/sales", permission: "can_view_reports" },
       { title: "Sales Report", icon: BarChart2, url: "/sales/report", permission: "can_view_reports" },
-      { title: "Payments", icon: CreditCard, url: "/payments", permission: "can_view_reports" },
+      { title: "Credit & Payments", icon: CreditCard, url: "/payments", permission: "can_view_reports" },
       { title: "Customers", icon: Users, url: "/customers", permission: "can_view_reports" },
     ],
   },
