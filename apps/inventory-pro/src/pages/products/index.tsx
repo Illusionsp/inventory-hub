@@ -2,6 +2,7 @@ import React, { useState } from "react";
 import {
   useListProducts,
   useListCategories,
+  useCreateProduct,
   useUpdateProduct,
   useDeleteProduct,
   getListProductsQueryKey,
@@ -43,7 +44,7 @@ import {
   AlertDialogHeader,
   AlertDialogTitle,
 } from "@/components/ui/alert-dialog";
-import { Search, Trash2, Pencil } from "lucide-react";
+import { Search, Trash2, Pencil, Plus } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useToast } from "@/hooks/use-toast";
 
@@ -103,6 +104,7 @@ export default function ProductsList() {
   const { data: categories } = useListCategories();
   const { data: productsData, isLoading } = useListProducts(params);
 
+  const createProduct = useCreateProduct();
   const updateProduct = useUpdateProduct();
   const deleteProduct = useDeleteProduct();
 
@@ -117,6 +119,12 @@ export default function ProductsList() {
       minimumFractionDigits: 2,
       maximumFractionDigits: 2,
     })}`;
+  };
+
+  const openAdd = () => {
+    setEditingId(null);
+    setForm(emptyForm());
+    setFormOpen(true);
   };
 
   const openEdit = (product: any) => {
@@ -159,22 +167,40 @@ export default function ProductsList() {
       categoryId: form.categoryId ? Number(form.categoryId) : null,
       reorderLevel: form.reorderLevel ? Number(form.reorderLevel) : 0,
       unitCost: form.unitCost ? Number(form.unitCost) : null,
+      isActive: form.isActive,
     };
 
-    updateProduct.mutate(
-      { id: editingId!, data: { ...payload, isActive: form.isActive } },
-      {
-        onSuccess: () => {
-          toast({ title: "Product updated" });
-          setFormOpen(false);
-          invalidate();
-        },
-        onError: (err: any) => {
-          const msg = err?.data?.error ?? err?.message ?? "Failed to update product";
-          toast({ title: msg, variant: "destructive" });
-        },
-      }
-    );
+    if (editingId !== null) {
+      updateProduct.mutate(
+        { id: editingId, data: payload },
+        {
+          onSuccess: () => {
+            toast({ title: "Product updated" });
+            setFormOpen(false);
+            invalidate();
+          },
+          onError: (err: any) => {
+            const msg = err?.data?.error ?? err?.message ?? "Failed to update product";
+            toast({ title: msg, variant: "destructive" });
+          },
+        }
+      );
+    } else {
+      createProduct.mutate(
+        { data: payload as any },
+        {
+          onSuccess: () => {
+            toast({ title: "Product created" });
+            setFormOpen(false);
+            invalidate();
+          },
+          onError: (err: any) => {
+            const msg = err?.data?.error ?? err?.message ?? "Failed to create product";
+            toast({ title: msg, variant: "destructive" });
+          },
+        }
+      );
+    }
   };
 
   const handleDelete = () => {
@@ -197,7 +223,7 @@ export default function ProductsList() {
     );
   };
 
-  const isMutating = updateProduct.isPending;
+  const isMutating = updateProduct.isPending || createProduct.isPending;
 
   return (
     <div className="space-y-6">
@@ -208,6 +234,10 @@ export default function ProductsList() {
             Manage raw materials, semi-finished, and finished goods.
           </p>
         </div>
+        <Button onClick={openAdd} data-testid="button-add-product">
+          <Plus className="h-4 w-4 mr-2" />
+          Add Product
+        </Button>
       </div>
 
       <div className="flex flex-col sm:flex-row items-center gap-4 bg-card p-4 rounded-xl border">
@@ -336,8 +366,8 @@ export default function ProductsList() {
       <Dialog open={formOpen} onOpenChange={(o) => { if (!isMutating) setFormOpen(o); }}>
         <DialogContent className="max-w-lg">
           <DialogHeader>
-            <DialogTitle>Edit Product</DialogTitle>
-            <DialogDescription>Update product details.</DialogDescription>
+            <DialogTitle>{editingId === null ? "Add Product" : "Edit Product"}</DialogTitle>
+            <DialogDescription>{editingId === null ? "Register a new product in the catalog." : "Update product details."}</DialogDescription>
           </DialogHeader>
 
           <div className="space-y-4 pt-2">
