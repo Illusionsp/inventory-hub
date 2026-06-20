@@ -172,13 +172,7 @@ export default function Login() {
             </form>
           </Form>
 
-          <div className="rounded-md bg-muted p-4 text-sm text-muted-foreground">
-            <p className="font-medium mb-1 text-foreground">Demo Accounts:</p>
-            <ul className="space-y-1 font-mono text-xs">
-              <li>admin@inventorypro.com / admin123</li>
-              <li>manager@inventorypro.com / manager123</li>
-            </ul>
-          </div>
+
         </div>
       </div>
     </div>
