@@ -25,7 +25,7 @@ export default function CustomerStatement() {
   });
 
   const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
+    `ETB ${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   if (isLoading) {
     return (

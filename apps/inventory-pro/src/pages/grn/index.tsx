@@ -26,7 +26,7 @@ export default function GrnList() {
   });
 
   const formatCurrency = (val: number) =>
-    new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(val);
+    `ETB ${val.toLocaleString("en-US", { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`;
 
   const getStatusBadge = (statusStr: string) => {
     switch (statusStr) {

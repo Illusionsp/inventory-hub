@@ -8,12 +8,62 @@ import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Textarea } from "@/components/ui/textarea";
-import { ArrowLeft, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Plus, Trash2, Check, ChevronsUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 
 interface InputMaterial { productId: string; quantity: string; unit: string; }
 
 export const BATCH_UNITS = ["KG", "g", "L", "ml", "pcs", "bottles", "bags", "cartons", "mg", "tons"];
+
+function ProductCombobox({ value, onChange, products }: { value: string, onChange: (v: string) => void, products: any[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={`justify-between w-full font-normal px-3 ${!value && "text-muted-foreground"}`}
+        >
+          <span className="truncate">
+            {value
+              ? products.find((p: any) => String(p.id) === value)?.name
+              : "Select product..."}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search product..." />
+          <CommandList>
+            <CommandEmpty>No product found.</CommandEmpty>
+            <CommandGroup>
+              {products.map((p: any) => (
+                <CommandItem
+                  key={p.id}
+                  value={p.name}
+                  onSelect={() => {
+                    onChange(String(p.id));
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={`mr-2 h-4 w-4 shrink-0 ${value === String(p.id) ? "opacity-100" : "opacity-0"}`}
+                  />
+                  <span className="truncate">{p.name}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export default function ProductionNew() {
   const [, setLocation] = useLocation();
@@ -152,12 +202,13 @@ export default function ProductionNew() {
           <CardContent className="space-y-3">
             {inputs.map((inp, i) => (
               <div key={i} className="grid grid-cols-[1fr_120px_100px_40px] gap-3 items-end">
-                <div className="space-y-1.5">
+                <div className="space-y-1.5 overflow-hidden">
                   {i === 0 && <Label>Product</Label>}
-                  <Select value={inp.productId} onValueChange={v => updateInput(i, "productId", v)}>
-                    <SelectTrigger data-testid={`select-product-${i}`}><SelectValue placeholder="Product" /></SelectTrigger>
-                    <SelectContent>{(productsData?.data ?? []).map((p: any) => <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>)}</SelectContent>
-                  </Select>
+                  <ProductCombobox
+                    value={inp.productId}
+                    onChange={v => updateInput(i, "productId", v)}
+                    products={productsData?.data ?? []}
+                  />
                 </div>
                 <div className="space-y-1.5">
                   {i === 0 && <Label>Quantity</Label>}

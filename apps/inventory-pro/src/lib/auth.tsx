@@ -94,7 +94,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     if (user.role === "super_admin") return true;
 
     if (user.permissions && Array.isArray(user.permissions)) {
-      return user.permissions.includes(permission);
+      if (user.permissions.length > 0) return user.permissions.includes(permission);
+      // if empty array, fallback to role defaults
     }
 
     const ROLE_DEFAULT_PERMISSIONS: Record<string, string[]> = {

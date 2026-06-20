@@ -47,7 +47,9 @@ import OpeningStock from "@/pages/opening-stock/index";
  * and we must not interfere with another tab that is still authenticated.
  */
 function onMutation401(error: unknown) {
+  console.error("Mutation failed! Caught in onMutation401", error);
   if ((error as any)?.status === 401) {
+    console.warn("401 detected, logging out...");
     const hadToken = !!sessionStorage.getItem("tab_session");
     sessionStorage.removeItem("tab_session");
     const base = import.meta.env.BASE_URL?.replace(/\/$/, "") ?? "";
@@ -67,7 +69,10 @@ const queryClient = new QueryClient({
       // ProtectedRoute can redirect without a multi-second retry delay.
       retry: (failureCount, error) =>
         (error as any)?.status === 401 ? false : failureCount < 1,
-      staleTime: 30000,
+      // Default to 15 second polling to ensure the app is "automatically efficient and refresh by itself"
+      refetchInterval: 15000,
+      refetchOnWindowFocus: true,
+      staleTime: 5000,
     },
   },
 });
