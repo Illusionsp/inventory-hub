@@ -11,7 +11,9 @@ import { Badge } from "@/components/ui/badge";
 import { Skeleton } from "@/components/ui/skeleton";
 import { Textarea } from "@/components/ui/textarea";
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter } from "@/components/ui/dialog";
-import { PackagePlus, Plus } from "lucide-react";
+import { PackagePlus, Plus, Check, ChevronsUpDown } from "lucide-react";
+import { Popover, PopoverContent, PopoverTrigger } from "@/components/ui/popover";
+import { Command, CommandInput, CommandList, CommandEmpty, CommandGroup, CommandItem } from "@/components/ui/command";
 import { useToast } from "@/hooks/use-toast";
 import { BATCH_UNITS } from "@/pages/production/new";
 
@@ -39,6 +41,54 @@ const DEFAULT_FORM = {
   entryDate: new Date().toISOString().split("T")[0],
   notes: "",
 };
+
+function ProductCombobox({ value, onChange, products }: { value: string, onChange: (v: string) => void, products: any[] }) {
+  const [open, setOpen] = useState(false);
+  return (
+    <Popover open={open} onOpenChange={setOpen}>
+      <PopoverTrigger asChild>
+        <Button
+          variant="outline"
+          role="combobox"
+          aria-expanded={open}
+          className={`justify-between w-full font-normal px-3 ${!value && "text-muted-foreground"}`}
+        >
+          <span className="truncate">
+            {value
+              ? products.find((p: any) => String(p.id) === value)?.name
+              : "Select product..."}
+          </span>
+          <ChevronsUpDown className="ml-2 h-4 w-4 shrink-0 opacity-50" />
+        </Button>
+      </PopoverTrigger>
+      <PopoverContent className="w-[300px] p-0" align="start">
+        <Command>
+          <CommandInput placeholder="Search product..." />
+          <CommandList>
+            <CommandEmpty>No product found.</CommandEmpty>
+            <CommandGroup>
+              {products.map((p: any) => (
+                <CommandItem
+                  key={p.id}
+                  value={p.name}
+                  onSelect={() => {
+                    onChange(String(p.id));
+                    setOpen(false);
+                  }}
+                >
+                  <Check
+                    className={`mr-2 h-4 w-4 shrink-0 ${value === String(p.id) ? "opacity-100" : "opacity-0"}`}
+                  />
+                  <span className="truncate">{p.name}</span>
+                </CommandItem>
+              ))}
+            </CommandGroup>
+          </CommandList>
+        </Command>
+      </PopoverContent>
+    </Popover>
+  );
+}
 
 export default function OpeningStockPage() {
   const { toast } = useToast();
@@ -235,16 +285,9 @@ export default function OpeningStockPage() {
             </div>
 
             {/* Product / Item */}
-            <div className="space-y-1.5">
+            <div className="space-y-1.5 overflow-hidden">
               <Label>Product *</Label>
-              <Select value={form.productId} onValueChange={handleProductSelect}>
-                <SelectTrigger data-testid="select-product"><SelectValue placeholder="Select product" /></SelectTrigger>
-                <SelectContent>
-                  {filteredProducts.map(p => (
-                    <SelectItem key={p.id} value={String(p.id)}>{p.name}</SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+              <ProductCombobox value={form.productId} onChange={handleProductSelect} products={filteredProducts} />
             </div>
 
             {/* Stock type */}
